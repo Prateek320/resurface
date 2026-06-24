@@ -24,7 +24,7 @@ const latestDrafts = {};
 // ============================================================
 const SEED_DATA = [
   {
-    id: "seed-lumber-1", type: "Job", title: "Senior Product Manager — Platform & Growth",
+    id: "seed-lumber-1", type: "Job", title: "Senior Product Manager, Platform & Growth",
     organization: "Lumber", location: "Remote (US)",
     description: "Lumber is hiring a Senior PM to own their core platform and growth surface.",
     deadline: (() => { const d = new Date(); d.setDate(d.getDate() + 9); return d.toISOString().split("T")[0]; })(),
@@ -37,11 +37,11 @@ const SEED_DATA = [
     notes: "", activity: [], drafts: [], snoozedUntil: null, reminderAt: null, outcome: null
   },
   {
-    id: "seed-2", type: "Founder/Startup", title: "PM Hire #1 — PulseAI (YC W24)",
+    id: "seed-2", type: "Founder/Startup", title: "PM Hire #1 at PulseAI (YC W24)",
     organization: "PulseAI", location: "San Francisco / Remote",
     description: "YC-backed startup building AI for clinical documentation. First PM hire.",
     deadline: (() => { const d = new Date(); d.setDate(d.getDate() + 6); return d.toISOString().split("T")[0]; })(),
-    followUpAction: "DM Arjun Mehta on LinkedIn — lead with healthcare or AI PM experience",
+    followUpAction: "DM Arjun Mehta on LinkedIn. Lead with healthcare or AI PM experience",
     priorityScore: 9, priorityReason: "First PM at YC company, deadline in 6 days",
     keyDetails: ["YC W24", "$8M Series A", "First PM hire"],
     contactInfo: "linkedin.com/in/arjunmehta", compensation: "Negotiable + equity",
@@ -54,7 +54,7 @@ const SEED_DATA = [
     organization: "USIEF", location: "United States",
     description: "Prestigious fellowship for Indian citizens to pursue Master's in the US.",
     deadline: (() => { const d = new Date(); d.setDate(d.getDate() + 21); return d.toISOString().split("T")[0]; })(),
-    followUpAction: "Start application at usief.org.in — request 2 recommenders this week",
+    followUpAction: "Start application at usief.org.in. Request 2 recommenders this week",
     priorityScore: 8, priorityReason: "Full funding, 21-day deadline",
     keyDetails: ["Full tuition + stipend", "~50 spots annually"],
     contactInfo: "usief.org.in/fellowships", compensation: "Full funding",
@@ -63,7 +63,7 @@ const SEED_DATA = [
     notes: "", activity: [], drafts: [], snoozedUntil: null, reminderAt: null, outcome: null
   },
   {
-    id: "seed-4", type: "Networking", title: "Sequoia Surge — SEA Founders Program 2024",
+    id: "seed-4", type: "Networking", title: "Sequoia Surge: SEA Founders Program 2024",
     organization: "Sequoia Surge", location: "Southeast Asia",
     description: "15 founders selected for $200K investment and 12-week program.",
     deadline: (() => { const d = new Date(); d.setDate(d.getDate() + 32); return d.toISOString().split("T")[0]; })(),
@@ -76,7 +76,7 @@ const SEED_DATA = [
     notes: "", activity: [], drafts: [], snoozedUntil: null, reminderAt: null, outcome: null
   },
   {
-    id: "seed-5", type: "Job", title: "Product Manager — Consumer Growth",
+    id: "seed-5", type: "Job", title: "Product Manager, Consumer Growth",
     organization: "Swiggy", location: "Bangalore (Hybrid)",
     description: "PM role for customer acquisition funnel at Swiggy.",
     deadline: null, followUpAction: "Apply at careers.swiggy.com and email Priya Sharma",
@@ -90,9 +90,9 @@ const SEED_DATA = [
 ];
 
 const examples = {
-  "WhatsApp message": `Hey! Ran into Arjun Mehta at AWS Summit — co-founder of PulseAI (YC W24). They're hiring their first PM. DM him on LinkedIn: linkedin.com/in/arjunmehta. Closing hire by end of June. Series A, $8M raised.`,
+  "WhatsApp message": `Hey! Ran into Arjun Mehta at AWS Summit. He is co-founder of PulseAI (YC W24). They're hiring their first PM. DM him on LinkedIn: linkedin.com/in/arjunmehta. Closing hire by end of June. Series A, $8M raised.`,
   "LinkedIn post": `Sequoia Surge is accepting applications for SEA Founders Program 2024. 15 founders, $200K investment, 12-week program. Applications close July 15. Apply at surge.sequoiacap.com/apply.`,
-  "Job posting": `Product Manager — Consumer Growth\nSwiggy | Bangalore (Hybrid)\n\n₹30-45 LPA + ESOP\nDeadline: June 28\nContact: priya.sharma@swiggy.com`,
+  "Job posting": `Product Manager, Consumer Growth\nSwiggy | Bangalore (Hybrid)\n\n₹30-45 LPA + ESOP\nDeadline: June 28\nContact: priya.sharma@swiggy.com`,
   "Scholarship": `Fulbright-Nehru Master's Fellowships for Indian citizens. Full tuition, living expenses, airfare. Deadline: July 15. usief.org.in/fellowships. ~50 spots annually.`
 };
 
@@ -336,7 +336,7 @@ function updateAuthUI(user, supabaseReady = true) {
     signedOut.style.display = "block";
     if (signInBtn) {
       signInBtn.disabled = true;
-      signInBtn.textContent = "Cloud sync — add Supabase keys";
+      signInBtn.textContent = "Cloud sync: add Supabase keys";
       signInBtn.title = "Set SUPABASE_URL and SUPABASE_ANON_KEY on the server";
     }
     return;
@@ -421,7 +421,7 @@ async function saveOnboarding() {
     userProfile = { ...userProfile, ...profile };
   }
   closeOnboarding();
-  showToast("Profile saved — AI will personalize your opportunities", "success");
+  showToast("Profile saved. AI will personalize your opportunities", "success");
 }
 
 function openProfileSettings() {
@@ -458,7 +458,7 @@ async function upgradeToPro() {
   await fetch("/api/profile", { method: "PUT", headers, body: JSON.stringify({ tier: "pro" }) });
   userProfile = { ...userProfile, tier: "pro" };
   updateUsageUI();
-  showToast("Upgraded to Pro! (demo — no payment required)", "success");
+  showToast("Upgraded to Pro! (demo, no payment required)", "success");
 }
 
 // ============================================================
@@ -802,10 +802,15 @@ function renderArchive() {
   archived.forEach(opp => grid.appendChild(buildCard(opp, true)));
 }
 
+function formatOrgLine(opp) {
+  if (!opp.organization && !opp.location) return "";
+  if (opp.organization && opp.location) return `${opp.organization}, ${opp.location}`;
+  return opp.organization || opp.location;
+}
+
 function buildCard(opp, isArchive) {
   const card = document.createElement("div");
-  card.className = "glass card-hover";
-  card.style.cssText = "border-radius:12px;padding:18px;cursor:pointer;position:relative;";
+  card.className = "glass card-hover opp-card";
   const dl = opp.deadline ? deadlineLabel(opp.deadline) : null;
   const pColor = priorityColor(opp.priorityScore || 5);
   const barWidth = ((opp.priorityScore || 5) / 10 * 100).toFixed(0);
@@ -815,40 +820,45 @@ function buildCard(opp, isArchive) {
   const statusTip = opp.status === "new" ? "Mark as in progress" : opp.status === "in-progress" ? "Mark as followed up" : "Reset to new";
   const statusIcon = opp.status === "new" ? "play" : opp.status === "in-progress" ? "check" : "reset";
   const statusBtnLabel = opp.status === "new" ? "Start" : opp.status === "in-progress" ? "Done" : "Reset";
+  const orgLine = formatOrgLine(opp);
 
   card.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+    <div class="opp-card-header">
+      <div class="opp-card-header-tags">
         <span class="tag ${typeClass(opp.type)}">${opp.type||"Other"}</span>
         <span class="tag ${statusClass(opp.status)}">${statusLabel(opp.status)}</span>
         ${snoozed ? '<span class="tag status-archived">Snoozed</span>' : ""}
       </div>
-      ${dl ? `<span class="${dl.cls}" style="font-size:12px;font-weight:500;">${dl.text}</span>` : ""}
+      <span class="opp-card-deadline ${dl ? dl.cls : ""}">${dl ? dl.text : ""}</span>
     </div>
-    <h3 class="card-title" style="font-size:15px;font-weight:500;color:var(--text);margin:0 0 4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(opp.title||"Untitled")}</h3>
-    ${opp.organization ? `<p class="card-org" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;">${escHtml(opp.organization)}${opp.location?` · ${escHtml(opp.location)}`:""}</p>` : ""}
-    <p class="card-desc" style="font-size:13px;color:var(--text-secondary);margin:0 0 14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(opp.description||"")}</p>
-    <div style="margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-        <span class="section-label" style="margin:0;">Priority</span>
-        <span style="font-size:13px;font-weight:600;color:${pColor};">${opp.priorityScore||"?"}/10</span>
+    <div class="opp-card-body">
+      <h3 class="card-title">${escHtml(opp.title||"Untitled")}</h3>
+      <p class="card-org">${orgLine ? escHtml(orgLine) : "&nbsp;"}</p>
+      <p class="card-desc">${escHtml(opp.description||"")}</p>
+      <div class="opp-card-priority">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <span class="section-label" style="margin:0;">Priority</span>
+          <span style="font-size:13px;font-weight:600;color:${pColor};">${opp.priorityScore||"?"}/10</span>
+        </div>
+        <div class="priority-bar"><div class="priority-fill" style="width:${barWidth}%;background:${pColor};"></div></div>
       </div>
-      <div class="priority-bar"><div class="priority-fill" style="width:${barWidth}%;background:${pColor};"></div></div>
+      <div class="card-action-box">
+        <p class="card-action-label">Next Action</p>
+        <p class="card-action-text" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(opp.followUpAction||"No action extracted")}</p>
+      </div>
+      <div class="opp-card-tags">
+        ${tags.map(t => `<span class="opp-card-tag">${escHtml(t)}</span>`).join("")}
+      </div>
     </div>
-    <div class="card-action-box" style="margin-bottom:14px;">
-      <p class="card-action-label">Next Action</p>
-      <p class="card-action-text" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(opp.followUpAction||"No action extracted")}</p>
-    </div>
-    ${tags.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px;">${tags.map(t=>`<span style="padding:2px 8px;border-radius:4px;font-size:11px;background:var(--tag-bg);color:var(--tag-text);">${escHtml(t)}</span>`).join("")}</div>` : ""}
-    <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border);">
+    <div class="opp-card-footer">
       ${!isArchive ? `
-        <button onclick="event.stopPropagation();cycleStatus('${id}')" class="icon-btn" style="flex:1;gap:6px;font-size:12px;" data-tip="${statusTip}">${icon(statusIcon,14)} ${statusBtnLabel}</button>
-        <button onclick="event.stopPropagation();archiveOpp('${id}')" class="icon-btn" data-tip="Move to archive">${icon("archive",14)}</button>
+        <button onclick="event.stopPropagation();cycleStatus('${id}')" class="icon-btn opp-card-btn-main" data-tip="${statusTip}">${icon(statusIcon,14)} ${statusBtnLabel}</button>
+        <button onclick="event.stopPropagation();archiveOpp('${id}')" class="icon-btn opp-card-btn-icon" data-tip="Move to archive">${icon("archive",14)}</button>
       ` : `
-        <button onclick="event.stopPropagation();unarchiveOpp('${id}')" class="icon-btn" style="flex:1;gap:6px;font-size:12px;" data-tip="Restore to dashboard">${icon("restore",14)} Restore</button>
+        <button onclick="event.stopPropagation();unarchiveOpp('${id}')" class="icon-btn opp-card-btn-main" data-tip="Restore to dashboard">${icon("restore",14)} Restore</button>
       `}
-      <button onclick="event.stopPropagation();confirmDelete('${id}')" class="icon-btn danger" data-tip="Permanently delete">${icon("trash",14)}</button>
-      <button onclick="event.stopPropagation();openDetail('${id}')" class="icon-btn" data-tip="View full details">${icon("eye",14)}</button>
+      <button onclick="event.stopPropagation();confirmDelete('${id}')" class="icon-btn opp-card-btn-icon danger" data-tip="Permanently delete">${icon("trash",14)}</button>
+      <button onclick="event.stopPropagation();openDetail('${id}')" class="icon-btn opp-card-btn-icon" data-tip="View full details">${icon("eye",14)}</button>
     </div>`;
   card.addEventListener("click", () => openDetail(opp.id));
   return card;
@@ -970,7 +980,7 @@ function openDetail(id) {
     </div>
     <div class="detail-section">
       <h2 style="font-size:20px;font-weight:500;color:var(--text);margin:0 0 6px;">${escHtml(opp.title||"Untitled")}</h2>
-      ${opp.organization ? `<p style="font-size:14px;color:var(--accent);margin:0 0 4px;">${escHtml(opp.organization)}${opp.location?` · ${escHtml(opp.location)}`:""}</p>` : ""}
+      ${opp.organization ? `<p style="font-size:14px;color:var(--accent);margin:0 0 4px;">${escHtml(opp.organization)}${opp.location ? `, ${escHtml(opp.location)}` : ""}</p>` : ""}
       ${opp.compensation ? `<p style="font-size:14px;color:var(--success);margin:0;">${escHtml(opp.compensation)}</p>` : ""}
     </div>
     <div class="detail-section">
@@ -1001,7 +1011,7 @@ function openDetail(id) {
       <button id="draft-generate-btn" onclick="generateDraft('${id}')" class="btn-primary" style="width:100%;padding:10px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;" data-tip="Generate a ready-to-send follow-up message">${icon("sparkles",16)} Generate Draft</button>
       ${latestDraft ? `
         <div style="padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--accent-softer);">
-          <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px;">${escHtml(latestDraft.channel)} ${latestDraft.subject ? `· ${escHtml(latestDraft.subject)}` : ""}</p>
+          <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px;">${escHtml(latestDraft.channel)}${latestDraft.subject ? `, ${escHtml(latestDraft.subject)}` : ""}</p>
           <textarea id="draft-textarea" class="preview-field" style="min-height:120px;margin:0;">${escHtml(latestDraft.body)}</textarea>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <button onclick="copyDraft(document.getElementById('draft-textarea').value)" class="icon-btn" style="gap:6px;font-size:12px;" data-tip="Copy draft to clipboard">${icon("copy",14)} Copy</button>
@@ -1029,7 +1039,7 @@ function openDetail(id) {
       </div>
       ${opp.reminderAt ? `<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">Reminder: ${new Date(opp.reminderAt).toLocaleString()}</p>` : ""}
     </div>
-    ${activities.length ? `<div class="detail-section"><p class="section-label">Activity</p>${activities.map(a=>`<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${new Date(a.at).toLocaleString()} — ${escHtml(a.type)}${a.meta?.outcome ? ` (${escHtml(a.meta.outcome)})` : ""}</div>`).join("")}</div>` : ""}
+    ${activities.length ? `<div class="detail-section"><p class="section-label">Activity</p>${activities.map(a=>`<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${new Date(a.at).toLocaleString()} · ${escHtml(a.type)}${a.meta?.outcome ? ` (${escHtml(a.meta.outcome)})` : ""}</div>`).join("")}</div>` : ""}
     <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;">
       ${opp.status !== "archived" ? `
         <button onclick="cycleStatus('${id}')" class="btn-primary" style="padding:10px 20px;display:flex;align-items:center;gap:8px;cursor:pointer;" data-tip="${detailStatusTip}">${detailStatusBtn}</button>
