@@ -4,6 +4,7 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
@@ -22,6 +23,64 @@ app.use(express.static(path.join(__dirname, "public")));
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
+
+const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const gemini = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
+
+function hasAI() {
+  return !!(gemini || openai);
+}
+
+function parseJsonText(text) {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+async function completeJSON({ system, user, temperature = 0.2, maxTokens = 1000 }) {
+  if (gemini) {
+    const model = gemini.getGenerativeModel({
+      model: GEMINI_MODEL,
+      systemInstruction: system,
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature,
+        maxOutputTokens: maxTokens,
+      },
+    });
+    const result = await model.generateContent(user);
+    return JSON.parse(parseJsonText(result.response.text()));
+  }
+
+  if (openai) {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      response_format: { type: "json_object" },
+      temperature,
+      max_tokens: maxTokens,
+    });
+    return JSON.parse(completion.choices[0].message.content);
+  }
+
+  throw new Error("No AI provider configured");
+}
+
+function mapAIError(err, res) {
+  console.error("AI error:", err.message);
+  const status = err.status || err.response?.status;
+  if (status === 401 || err.message?.includes("API key")) {
+    return res.status(401).json({ error: "Invalid AI API key." });
+  }
+  if (status === 429 || err.message?.includes("429") || err.message?.includes("quota")) {
+    return res.status(429).json({ error: "Rate limit hit. Please wait a moment and try again." });
+  }
+  return res.status(500).json({ error: "AI request failed. Please try again." });
+}
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -210,38 +269,22 @@ app.post("/api/extract", optionalAuth, async (req, res) => {
     }
   }
 
-  if (!openai) {
-    return res.status(503).json({ error: "OpenAI API key not configured." });
+  if (!hasAI()) {
+    return res.status(503).json({ error: "AI API key not configured. Set GEMINI_API_KEY or OPENAI_API_KEY." });
   }
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT + buildProfileContext(profile) },
-        {
-          role: "user",
-          content: `Extract the opportunity from this text:\n\n${text.trim()}`,
-        },
-      ],
-      response_format: { type: "json_object" },
+    const data = await completeJSON({
+      system: SYSTEM_PROMPT + buildProfileContext(profile),
+      user: `Extract the opportunity from this text:\n\n${text.trim()}`,
       temperature: 0.2,
-      max_tokens: 1000,
+      maxTokens: 1000,
     });
-
-    const data = JSON.parse(completion.choices[0].message.content);
     if (req.user) await incrementUsage(req.user.id, "extract");
 
     res.json({ success: true, opportunity: data });
   } catch (err) {
-    console.error("OpenAI error:", err.message);
-    if (err.status === 401) {
-      return res.status(401).json({ error: "Invalid OpenAI API key." });
-    }
-    if (err.status === 429) {
-      return res.status(429).json({ error: "Rate limit hit. Please wait a moment and try again." });
-    }
-    res.status(500).json({ error: "AI extraction failed. Please try again." });
+    return mapAIError(err, res);
   }
 });
 
@@ -260,32 +303,22 @@ app.post("/api/draft-followup", optionalAuth, async (req, res) => {
     }
   }
 
-  if (!openai) {
-    return res.status(503).json({ error: "OpenAI API key not configured." });
+  if (!hasAI()) {
+    return res.status(503).json({ error: "AI API key not configured. Set GEMINI_API_KEY or OPENAI_API_KEY." });
   }
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: DRAFT_PROMPT },
-        {
-          role: "user",
-          content: `Opportunity:\n${JSON.stringify(opportunity, null, 2)}${buildProfileContext(profile)}`,
-        },
-      ],
-      response_format: { type: "json_object" },
+    const draft = await completeJSON({
+      system: DRAFT_PROMPT,
+      user: `Opportunity:\n${JSON.stringify(opportunity, null, 2)}${buildProfileContext(profile)}`,
       temperature: 0.4,
-      max_tokens: 800,
+      maxTokens: 800,
     });
-
-    const draft = JSON.parse(completion.choices[0].message.content);
     if (req.user) await incrementUsage(req.user.id, "draft");
 
     res.json({ success: true, draft });
   } catch (err) {
-    console.error("Draft error:", err.message);
-    res.status(500).json({ error: "Failed to generate draft. Please try again." });
+    return mapAIError(err, res);
   }
 });
 
@@ -403,6 +436,9 @@ app.get("*", (_, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n🚀 Resurface running at http://localhost:${PORT}\n`);
+  if (gemini) console.log(`✨ AI: Gemini (${GEMINI_MODEL})\n`);
+  else if (openai) console.log("✨ AI: OpenAI (gpt-4o)\n");
+  else console.log("⚠️  No AI key — set GEMINI_API_KEY or OPENAI_API_KEY\n");
   if (!supabaseAdmin) {
     console.log("ℹ️  Supabase not configured — running in local-only mode.\n");
   }
