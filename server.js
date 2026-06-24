@@ -20,13 +20,26 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
+function env(...keys) {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return null;
+}
 
-const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const openaiKey = env("OPENAI_API_KEY");
+const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
+
+const geminiKey = env("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY");
+const GEMINI_MODEL = env("GEMINI_MODEL") || "gemini-2.0-flash";
 const gemini = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
+
+function getAIProvider() {
+  if (gemini) return "gemini";
+  if (openai) return "openai";
+  return null;
+}
 
 function hasAI() {
   return !!(gemini || openai);
@@ -240,6 +253,8 @@ app.get("/api/config", (_, res) => {
     supabaseUrl: supabaseUrl || null,
     supabaseAnonKey: supabaseAnonKey || null,
     limits: { freeExtractions: FREE_EXTRACTIONS, freeDrafts: FREE_DRAFTS },
+    aiConfigured: hasAI(),
+    aiProvider: getAIProvider(),
   });
 });
 
