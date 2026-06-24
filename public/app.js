@@ -544,6 +544,10 @@ async function extractOpportunity() {
     });
     if (!res.ok) {
       if (data.limitReached) showUpgradePrompt(data.error);
+      if (data.quotaExhausted) {
+        showToast(data.error, "error");
+        throw new Error(data.error);
+      }
       const detail = data.hint ? `${data.error} (${data.hint})` : data.error;
       throw new Error(detail || "Extraction failed");
     }
@@ -659,6 +663,11 @@ async function generateDraft(oppId) {
     });
     if (!res.ok) {
       if (data.limitReached) showUpgradePrompt(data.error);
+      if (data.quotaExhausted) {
+        if (statusEl) statusEl.textContent = data.error;
+        showToast(data.error, "error");
+        throw new Error(data.error);
+      }
       const detail = data.hint ? `${data.error} (${data.hint})` : data.error;
       throw new Error(detail || "Draft failed");
     }

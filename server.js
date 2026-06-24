@@ -103,6 +103,17 @@ function isRateLimitError(err) {
   );
 }
 
+function rateLimitMessage(err) {
+  const msg = (err.message || "").toLowerCase();
+  if (msg.includes("limit: 0")) {
+    return "Gemini free tier is not active on this Google project. Create a new API key at aistudio.google.com/apikey (new project), or enable billing on the project — free tier still applies.";
+  }
+  if (msg.includes("perday") || msg.includes("per day") || msg.includes("rpd") || msg.includes("daily")) {
+    return "Gemini daily free quota is used up. It resets at midnight Pacific Time. For immediate use, create a new API key in a fresh Google AI Studio project.";
+  }
+  return "Gemini rate limit hit. Wait 2 minutes and try once — do not click repeatedly. If this has lasted over an hour, your daily quota is likely exhausted; create a new API key at aistudio.google.com/apikey.";
+}
+
 function isTransientError(err) {
   const msg = (err.message || "").toLowerCase();
   return (
@@ -140,35 +151,28 @@ async function callGeminiModel(modelName, system, user, temperature, maxTokens, 
 }
 
 async function geminiCompleteJSON({ system, user, temperature, maxTokens }) {
-  let lastError;
-  const models = GEMINI_FALLBACK_MODELS.slice(0, 2);
+  const primary = GEMINI_FALLBACK_MODELS[0];
+  const secondary = GEMINI_FALLBACK_MODELS.find((m) => m !== primary);
 
-  for (const modelName of models) {
-    for (const useSystemInstruction of [true, false]) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          return await withTimeout(
-            callGeminiModel(modelName, system, user, temperature, maxTokens, useSystemInstruction),
-            55000
-          );
-        } catch (err) {
-          lastError = err;
-          console.error(`Gemini error [${modelName}]:`, err.message);
-          if (isAuthError(err) || isRateLimitError(err)) throw err;
-          if (isTransientError(err) && attempt === 0) {
-            await sleep(2500);
-            continue;
-          }
-          break;
-        }
-      }
-      if (lastError?.message?.includes("invalid JSON")) continue;
-      if (lastError && !isTransientError(lastError)) break;
+  try {
+    return await withTimeout(
+      callGeminiModel(primary, system, user, temperature, maxTokens, true),
+      55000
+    );
+  } catch (err) {
+    console.error(`Gemini error [${primary}]:`, err.message);
+    if (isAuthError(err) || isRateLimitError(err)) throw err;
+    if (!secondary) throw err;
+    try {
+      return await withTimeout(
+        callGeminiModel(secondary, system, user, temperature, maxTokens, true),
+        55000
+      );
+    } catch (fallbackErr) {
+      console.error(`Gemini error [${secondary}]:`, fallbackErr.message);
+      throw fallbackErr;
     }
-    if (lastError && isModelError(lastError)) break;
   }
-
-  throw lastError || new Error("Gemini request failed");
 }
 
 async function completeJSON({ system, user, temperature = 0.2, maxTokens = 1000 }) {
@@ -206,8 +210,8 @@ function mapAIError(err, res) {
   }
   if (isRateLimitError(err)) {
     return res.status(429).json({
-      error:
-        "Gemini free tier limit reached. Wait 1–2 minutes between tries. Free accounts allow ~15 requests/minute.",
+      error: rateLimitMessage(err),
+      quotaExhausted: true,
     });
   }
   if (isTransientError(err)) {
@@ -621,22 +625,23 @@ app.get("/api/ai-ping", async (_, res) => {
   if (!gemini) {
     return res.json({ ok: false, reason: "no_ai_key" });
   }
-  for (const modelName of GEMINI_FALLBACK_MODELS) {
-    try {
-      const model = gemini.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent('Reply with exactly the word "ok"');
-      return res.json({
-        ok: true,
-        model: modelName,
-        reply: getGeminiText(result.response).slice(0, 20),
-      });
-    } catch (err) {
-      if (isAuthError(err)) {
-        return res.json({ ok: false, model: modelName, error: err.message?.slice(0, 200) });
-      }
-    }
+  const modelName = GEMINI_FALLBACK_MODELS[0];
+  try {
+    const model = gemini.getGenerativeModel({ model: modelName });
+    const result = await model.generateContent('Reply with exactly the word "ok"');
+    return res.json({
+      ok: true,
+      model: modelName,
+      reply: getGeminiText(result.response).slice(0, 20),
+    });
+  } catch (err) {
+    return res.json({
+      ok: false,
+      model: modelName,
+      error: isRateLimitError(err) ? rateLimitMessage(err) : (err.message || "AI ping failed").slice(0, 240),
+      quotaExhausted: isRateLimitError(err),
+    });
   }
-  res.json({ ok: false, error: "All Gemini models failed. Check API key and model access." });
 });
 
 app.get("*", (_, res) => {
