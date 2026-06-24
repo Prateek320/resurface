@@ -117,25 +117,35 @@
           </button>
         </div>
 
-        <!-- Stats row -->
-        <div class="stats-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;">
-          <div class="glass" style="padding:16px;border-radius:12px;">
-            <p class="stat-label" style="font-size:12px;color:var(--text-muted);margin:0 0 6px;">Total</p>
-            <p id="s-total" style="font-size:24px;font-weight:600;color:var(--text);margin:0;">0</p>
-          </div>
-          <div class="glass" style="padding:16px;border-radius:12px;">
-            <p class="stat-label stat-high" style="font-size:12px;margin:0 0 6px;">High Priority</p>
-            <p id="s-high" class="stat-high" style="font-size:24px;font-weight:600;margin:0;">0</p>
-          </div>
-          <div class="glass" style="padding:16px;border-radius:12px;">
-            <p class="stat-label stat-soon" style="font-size:12px;margin:0 0 6px;">Due Soon</p>
-            <p id="s-soon" class="stat-soon" style="font-size:24px;font-weight:600;margin:0;">0</p>
-          </div>
-          <div class="glass" style="padding:16px;border-radius:12px;">
-            <p class="stat-label stat-done" style="font-size:12px;margin:0 0 6px;">Followed Up</p>
-            <p id="s-done" class="stat-done" style="font-size:24px;font-weight:600;margin:0;">0</p>
+        <!-- Stats: summary cards or charts -->
+        <div class="stats-panel-header">
+          <span class="stats-panel-label">Overview</span>
+          <div class="stats-view-toggle" role="group" aria-label="Stats display mode">
+            <button type="button" id="stats-toggle-cards" class="stats-toggle-btn active" onclick="setStatsView('cards')" data-tip="Show summary stat cards">Summary</button>
+            <button type="button" id="stats-toggle-viz" class="stats-toggle-btn" onclick="setStatsView('viz')" data-tip="Show chart visualizations">Charts</button>
           </div>
         </div>
+
+        <div id="stats-cards-panel" class="stats-row stats-cards-panel">
+          <div class="glass stat-card">
+            <p class="stat-label">Total</p>
+            <p id="s-total" class="stat-value">0</p>
+          </div>
+          <div class="glass stat-card">
+            <p class="stat-label stat-high">High Priority</p>
+            <p id="s-high" class="stat-value stat-high">0</p>
+          </div>
+          <div class="glass stat-card">
+            <p class="stat-label stat-soon">Due Soon</p>
+            <p id="s-soon" class="stat-value stat-soon">0</p>
+          </div>
+          <div class="glass stat-card">
+            <p class="stat-label stat-done">Followed Up</p>
+            <p id="s-done" class="stat-value stat-done">0</p>
+          </div>
+        </div>
+
+        <div id="stats-viz-panel" class="stats-viz-panel" style="display:none;" aria-hidden="true"></div>
 
         <!-- Filters + Search -->
         <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
@@ -371,6 +381,7 @@
         <section class="help-section">
           <h4>Dashboard</h4>
           <ul class="help-list">
+            <li><strong>Overview toggle</strong>: Switch between <strong>Summary</strong> stat cards and <strong>Charts</strong> visualizations.</li>
             <li><strong>Stats</strong>: Total active opportunities, high priority (8+), due within 14 days, and followed up.</li>
             <li><strong>Search</strong>: Find opportunities by title, company, tags, or description.</li>
             <li><strong>Filters</strong>: All, High Priority, Due Soon, New, or In Progress.</li>

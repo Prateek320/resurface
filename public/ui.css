@@ -258,6 +258,178 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
 .usage-badge.free { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--pastel-blue); }
 .usage-badge.pro { background: #EDF7F2; color: var(--success); border: 1px solid #C8E6D8; }
 
+/* Dashboard stats toggle & charts */
+.stats-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.stats-panel-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.stats-view-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.stats-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.stats-toggle-btn:hover {
+  color: var(--text);
+  background: var(--accent-softer);
+}
+
+.stats-toggle-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.stats-cards-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.stat-card .stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.stats-viz-panel {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.viz-card {
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.viz-card-wide {
+  grid-column: 1 / -1;
+}
+
+.viz-card-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 32px 20px;
+}
+
+.viz-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.viz-empty-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.viz-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 14px;
+}
+
+.viz-bar-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 34%) 1fr 28px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.viz-bar-row:last-child {
+  margin-bottom: 0;
+}
+
+.viz-bar-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viz-bar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.viz-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+  min-width: 0;
+}
+
+.viz-bar-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .stats-cards-panel {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-viz-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .viz-bar-row {
+    grid-template-columns: minmax(72px, 38%) 1fr 24px;
+    gap: 8px;
+  }
+}
+
 /* Opportunity list */
 .opp-list {
   display: flex;

@@ -880,8 +880,134 @@ function buildListRow(opp, isArchive) {
   return row;
 }
 
+function getActiveOpps() {
+  return opportunities.filter(
+    o => o.status !== "archived" && (!o.snoozedUntil || new Date(o.snoozedUntil) <= new Date())
+  );
+}
+
+let statsView = localStorage.getItem("resurface_stats_view") || "cards";
+
+function setStatsView(mode) {
+  statsView = mode === "viz" ? "viz" : "cards";
+  localStorage.setItem("resurface_stats_view", statsView);
+
+  const cardsPanel = document.getElementById("stats-cards-panel");
+  const vizPanel = document.getElementById("stats-viz-panel");
+  const cardsBtn = document.getElementById("stats-toggle-cards");
+  const vizBtn = document.getElementById("stats-toggle-viz");
+
+  if (cardsPanel) cardsPanel.style.display = statsView === "cards" ? "grid" : "none";
+  if (vizPanel) {
+    vizPanel.style.display = statsView === "viz" ? "grid" : "none";
+    vizPanel.setAttribute("aria-hidden", statsView === "viz" ? "false" : "true");
+  }
+  if (cardsBtn) cardsBtn.classList.toggle("active", statsView === "cards");
+  if (vizBtn) vizBtn.classList.toggle("active", statsView === "viz");
+
+  if (statsView === "viz") renderStatsViz();
+}
+
+function vizBarRow(label, value, max, color) {
+  const pct = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
+  return `
+    <div class="viz-bar-row">
+      <span class="viz-bar-label">${escHtml(label)}</span>
+      <div class="viz-bar-track"><div class="viz-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+      <span class="viz-bar-value">${value}</span>
+    </div>`;
+}
+
+function renderStatsViz() {
+  const panel = document.getElementById("stats-viz-panel");
+  if (!panel) return;
+
+  const active = getActiveOpps();
+  const high = active.filter(o => (o.priorityScore || 0) >= 8).length;
+  const dueSoon = active.filter(o => { const d = getDaysUntil(o.deadline); return d !== null && d <= 14; }).length;
+  const followedUp = opportunities.filter(o => o.status === "done").length;
+  const overviewMax = Math.max(active.length, high, dueSoon, followedUp, 1);
+
+  const statusCounts = {
+    New: active.filter(o => o.status === "new").length,
+    "In Progress": active.filter(o => o.status === "in-progress").length,
+    "Followed Up": active.filter(o => o.status === "done").length,
+  };
+  const statusMax = Math.max(...Object.values(statusCounts), 1);
+
+  const priorityBands = [
+    { label: "9-10 Urgent", min: 9, max: 10, color: "#C84B4B" },
+    { label: "7-8 High", min: 7, max: 8, color: "#1877F2" },
+    { label: "4-6 Medium", min: 4, max: 6, color: "#5B9BD5" },
+    { label: "1-3 Low", min: 1, max: 3, color: "#8A9BB0" },
+  ].map(b => ({
+    ...b,
+    count: active.filter(o => {
+      const s = o.priorityScore || 0;
+      return s >= b.min && s <= b.max;
+    }).length,
+  }));
+  const priorityMax = Math.max(...priorityBands.map(b => b.count), 1);
+
+  const deadlineBands = [
+    { label: "Overdue", color: "#C84B4B", test: d => d !== null && d < 0 },
+    { label: "This week", color: "#C84B4B", test: d => d !== null && d >= 0 && d <= 7 },
+    { label: "8-14 days", color: "#9A7B2F", test: d => d !== null && d > 7 && d <= 14 },
+    { label: "Later", color: "#5B9BD5", test: d => d !== null && d > 14 },
+    { label: "No deadline", color: "#8A9BB0", test: d => d === null },
+  ].map(b => ({
+    ...b,
+    count: active.filter(o => b.test(getDaysUntil(o.deadline))).length,
+  }));
+  const deadlineMax = Math.max(...deadlineBands.map(b => b.count), 1);
+
+  const typeMap = {};
+  active.forEach(o => {
+    const t = o.type || "Other";
+    typeMap[t] = (typeMap[t] || 0) + 1;
+  });
+  const typeEntries = Object.entries(typeMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const typeMax = Math.max(...typeEntries.map(([, c]) => c), 1);
+
+  panel.innerHTML = `
+    <div class="glass viz-card">
+      <h4 class="viz-card-title">Key metrics</h4>
+      ${vizBarRow("Total active", active.length, overviewMax, "var(--accent)")}
+      ${vizBarRow("High priority (8+)", high, overviewMax, "#C84B4B")}
+      ${vizBarRow("Due within 14 days", dueSoon, overviewMax, "#9A7B2F")}
+      ${vizBarRow("Followed up", followedUp, overviewMax, "#2D7A5F")}
+    </div>
+    <div class="glass viz-card">
+      <h4 class="viz-card-title">Pipeline status</h4>
+      ${vizBarRow("New", statusCounts.New, statusMax, "var(--accent)")}
+      ${vizBarRow("In progress", statusCounts["In Progress"], statusMax, "#9A7B2F")}
+      ${vizBarRow("Followed up", statusCounts["Followed Up"], statusMax, "#2D7A5F")}
+    </div>
+    <div class="glass viz-card">
+      <h4 class="viz-card-title">Priority distribution</h4>
+      ${priorityBands.map(b => vizBarRow(b.label, b.count, priorityMax, b.color)).join("")}
+    </div>
+    <div class="glass viz-card">
+      <h4 class="viz-card-title">Deadline urgency</h4>
+      ${deadlineBands.map(b => vizBarRow(b.label, b.count, deadlineMax, b.color)).join("")}
+    </div>
+    ${typeEntries.length ? `
+    <div class="glass viz-card viz-card-wide">
+      <h4 class="viz-card-title">By opportunity type</h4>
+      ${typeEntries.map(([type, count]) => vizBarRow(type, count, typeMax, "var(--accent)")).join("")}
+    </div>` : ""}`;
+
+  if (!active.length) {
+    panel.innerHTML = `
+      <div class="glass viz-card viz-card-empty">
+        <p class="viz-empty-title">No data to visualize yet</p>
+        <p class="viz-empty-text">Add opportunities to see charts for priority, deadlines, and pipeline status.</p>
+      </div>`;
+  }
+}
+
 function updateStats() {
-  const active = opportunities.filter(o => o.status !== "archived" && (!o.snoozedUntil || new Date(o.snoozedUntil) <= new Date()));
+  const active = getActiveOpps();
   document.getElementById("s-total").textContent = active.length;
   document.getElementById("s-high").textContent = active.filter(o => (o.priorityScore||0) >= 8).length;
   document.getElementById("s-soon").textContent = active.filter(o => { const d=getDaysUntil(o.deadline); return d!==null&&d<=14; }).length;
@@ -891,6 +1017,7 @@ function updateStats() {
   const wrap = document.getElementById("stat-urgent-wrap");
   if (urgent.length > 0) { wrap.style.display = "block"; document.getElementById("stat-urgent").textContent = `${urgent.length} due within 7 days`; }
   else wrap.style.display = "none";
+  if (statsView === "viz") renderStatsViz();
 }
 
 // ============================================================
@@ -1165,6 +1292,7 @@ document.addEventListener("keydown", e => {
 document.addEventListener("DOMContentLoaded", async () => {
   opportunities = loadLocal();
   renderExampleButtons();
+  setStatsView(statsView);
   renderCards();
   handleShareTarget();
   initTooltips();
@@ -1186,6 +1314,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // Expose globals for inline handlers
+window.setStatsView = setStatsView;
 window.showView = showView;
 window.toggleSidebar = toggleSidebar;
 window.extractOpportunity = extractOpportunity;
