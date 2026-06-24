@@ -32,7 +32,10 @@ const openaiKey = env("OPENAI_API_KEY");
 const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 const geminiKey = env("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY");
-const GEMINI_MODEL = env("GEMINI_MODEL") || "gemini-2.0-flash";
+const GEMINI_MODEL = env("GEMINI_MODEL") || "gemini-2.5-flash-lite";
+const GEMINI_FALLBACK_MODELS = env("GEMINI_MODEL")
+  ? [GEMINI_MODEL]
+  : ["gemini-2.5-flash-lite", "gemini-2.5-flash"];
 const gemini = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
 
 function getAIProvider() {
@@ -51,10 +54,31 @@ function parseJsonText(text) {
   return fenced ? fenced[1].trim() : trimmed;
 }
 
-async function completeJSON({ system, user, temperature = 0.2, maxTokens = 1000 }) {
-  if (gemini) {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRateLimitError(err) {
+  const msg = err.message || "";
+  return (
+    err.status === 429 ||
+    msg.includes("429") ||
+    msg.includes("quota") ||
+    msg.includes("RESOURCE_EXHAUSTED") ||
+    msg.includes("rate limit")
+  );
+}
+
+function isModelError(err) {
+  const msg = (err.message || "").toLowerCase();
+  return err.status === 404 || msg.includes("not found") || msg.includes("deprecated");
+}
+
+async function geminiCompleteJSON({ system, user, temperature, maxTokens }) {
+  let lastError;
+  for (const modelName of GEMINI_FALLBACK_MODELS) {
     const model = gemini.getGenerativeModel({
-      model: GEMINI_MODEL,
+      model: modelName,
       systemInstruction: system,
       generationConfig: {
         responseMimeType: "application/json",
@@ -62,8 +86,28 @@ async function completeJSON({ system, user, temperature = 0.2, maxTokens = 1000 
         maxOutputTokens: maxTokens,
       },
     });
-    const result = await model.generateContent(user);
-    return JSON.parse(parseJsonText(result.response.text()));
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await model.generateContent(user);
+        return JSON.parse(parseJsonText(result.response.text()));
+      } catch (err) {
+        lastError = err;
+        if (isRateLimitError(err) && attempt < 2) {
+          await sleep(1500 * (attempt + 1));
+          continue;
+        }
+        if (isModelError(err)) break;
+        throw err;
+      }
+    }
+  }
+  throw lastError || new Error("Gemini request failed");
+}
+
+async function completeJSON({ system, user, temperature = 0.2, maxTokens = 1000 }) {
+  if (gemini) {
+    return geminiCompleteJSON({ system, user, temperature, maxTokens });
   }
 
   if (openai) {
@@ -89,8 +133,16 @@ function mapAIError(err, res) {
   if (status === 401 || err.message?.includes("API key")) {
     return res.status(401).json({ error: "Invalid AI API key." });
   }
-  if (status === 429 || err.message?.includes("429") || err.message?.includes("quota")) {
-    return res.status(429).json({ error: "Rate limit hit. Please wait a moment and try again." });
+  if (isModelError(err)) {
+    return res.status(503).json({
+      error: "AI model unavailable. Set GEMINI_MODEL to gemini-2.5-flash-lite on Render and redeploy.",
+    });
+  }
+  if (isRateLimitError(err)) {
+    return res.status(429).json({
+      error:
+        "Gemini free tier limit reached. Wait 1–2 minutes and try again, or set GEMINI_MODEL=gemini-2.5-flash-lite on Render.",
+    });
   }
   return res.status(500).json({ error: "AI request failed. Please try again." });
 }
@@ -255,6 +307,7 @@ app.get("/api/config", (_, res) => {
     limits: { freeExtractions: FREE_EXTRACTIONS, freeDrafts: FREE_DRAFTS },
     aiConfigured: hasAI(),
     aiProvider: getAIProvider(),
+    aiModel: gemini ? GEMINI_MODEL : openai ? "gpt-4o" : null,
   });
 });
 
