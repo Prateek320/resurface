@@ -1,4 +1,4 @@
-/* Resurface — Meta-inspired light UI */
+/* Resurface — clean professional UI */
 :root {
   --bg: #F7F9FC;
   --surface: #FFFFFF;
@@ -32,7 +32,7 @@
   --success: #2D7A5F;
   --radius: 8px;
   --radius-lg: 12px;
-  --font: 'Libre Franklin', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -43,14 +43,16 @@ html, body {
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
+  font-style: normal;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 ::-webkit-scrollbar { width: 6px; }
@@ -89,10 +91,11 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   color: var(--text-muted);
   background: transparent;
   border-radius: var(--radius);
-  font-style: italic;
+  font-style: normal;
+  font-weight: 500;
 }
 .nav-item:hover { color: var(--text); background: var(--accent-softer); }
-.nav-item.active { color: var(--accent); background: var(--accent-soft); font-weight: 500; }
+.nav-item.active { color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 
 /* Buttons */
 .btn-primary {
@@ -101,8 +104,8 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   border: none;
   border-radius: var(--radius);
   font-family: var(--font);
-  font-style: italic;
-  font-weight: 500;
+  font-style: normal;
+  font-weight: 600;
   transition: background 0.15s;
 }
 .btn-primary:hover { background: var(--accent-hover); }
@@ -114,7 +117,8 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-family: var(--font);
-  font-style: italic;
+  font-style: normal;
+  font-weight: 500;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -130,6 +134,8 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   background: var(--surface);
   color: var(--text-muted);
   cursor: pointer;
+  font-style: normal;
+  font-weight: 500;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .icon-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-softer); }
@@ -175,8 +181,8 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 13px;
-  font-style: italic;
-  font-weight: 400;
+  font-style: normal;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
   border: 1px solid var(--border);
@@ -189,6 +195,7 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
 /* Forms */
 .textarea-focus, .preview-field, .search-input, .theme-select {
   font-family: var(--font);
+  font-style: normal;
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -199,17 +206,16 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.12);
 }
-.textarea-focus::placeholder { color: var(--text-dim); font-style: italic; }
+.textarea-focus::placeholder { color: var(--text-dim); font-style: normal; }
 
 .theme-select {
   padding: 6px 12px;
   font-size: 13px;
-  font-style: italic;
   cursor: pointer;
 }
 
 .preview-field { width: 100%; padding: 10px 12px; margin-bottom: 12px; font-size: 14px; }
-.search-input { flex: 1; min-width: 180px; padding: 8px 14px; font-style: italic; }
+.search-input { flex: 1; min-width: 180px; padding: 8px 14px; }
 
 .section-label {
   font-size: 11px;
@@ -217,6 +223,7 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   margin: 0 0 6px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
 .link-btn {
@@ -224,7 +231,8 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   border: none;
   color: var(--accent);
   font-size: 12px;
-  font-style: italic;
+  font-style: normal;
+  font-weight: 500;
   cursor: pointer;
   padding: 0;
   font-family: var(--font);
@@ -237,7 +245,8 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   background: var(--surface);
   color: var(--text-muted);
   font-size: 12px;
-  font-style: italic;
+  font-style: normal;
+  font-weight: 500;
   cursor: pointer;
   font-family: var(--font);
   transition: all 0.15s;
@@ -245,7 +254,7 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
 .example-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-softer); }
 
 .stat-box { background: var(--stat-box-bg); border: 1px solid var(--stat-box-border); }
-.usage-badge { font-size: 11px; padding: 4px 8px; border-radius: 4px; font-style: italic; font-weight: 500; }
+.usage-badge { font-size: 11px; padding: 4px 8px; border-radius: 4px; font-style: normal; font-weight: 600; }
 .usage-badge.free { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--pastel-blue); }
 .usage-badge.pro { background: #EDF7F2; color: var(--success); border: 1px solid #C8E6D8; }
 
@@ -256,8 +265,17 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   background: var(--accent-softer);
   border: 1px solid var(--pastel-blue);
 }
-.card-action-label { font-size: 11px; color: var(--accent); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; font-style: italic; }
+.card-action-label {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-style: normal;
+}
 .card-action-text { font-size: 13px; color: var(--text-secondary); line-height: 1.45; }
+
+.h-sub { font-style: normal; color: var(--text-muted); }
 
 /* Modals */
 .modal-overlay { backdrop-filter: blur(4px); }
@@ -280,7 +298,8 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   background: var(--text);
   color: #fff;
   font-size: 12px;
-  font-style: italic;
+  font-style: normal;
+  font-weight: 500;
   line-height: 1.4;
   border-radius: 6px;
   pointer-events: none;

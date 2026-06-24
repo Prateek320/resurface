@@ -353,6 +353,7 @@ app.get("/api/config", (_, res) => {
   res.json({
     supabaseUrl: supabaseUrl || null,
     supabaseAnonKey: supabaseAnonKey || null,
+    supabaseConfigured: !!(supabaseUrl && supabaseAnonKey),
     limits: { freeExtractions: FREE_EXTRACTIONS, freeDrafts: FREE_DRAFTS },
     aiConfigured: hasAI(),
     aiProvider: getAIProvider(),

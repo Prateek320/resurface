@@ -1,4 +1,4 @@
-const CACHE = "resurface-v4";
+const CACHE = "resurface-v5";
 const ASSETS = ["/manifest.json", "/icons/icon.svg"];
 
 self.addEventListener("install", (e) => {

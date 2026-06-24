@@ -50,12 +50,45 @@ npm start
 - Free tier: 10 extractions + 3 drafts/month (when signed in)
 - Pro tier: unlimited (demo upgrade, no payment)
 
-## Supabase setup (optional)
+## Supabase setup (cloud sync + sign-in)
 
-1. Create a project at [supabase.com](https://supabase.com)
-2. Run [`db/schema.sql`](db/schema.sql) in the SQL editor
-3. Enable Email and Google auth providers
-4. Add env vars: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+### 1. Create project
+1. Go to [supabase.com](https://supabase.com) → **New project**
+2. Wait for the project to finish provisioning
+
+### 2. Database schema
+1. Open **SQL Editor** → **New query**
+2. Paste and run the full contents of [`db/schema.sql`](db/schema.sql)
+
+### 3. Auth providers
+In **Authentication** → **Providers**:
+- Enable **Email** (magic link)
+- Optionally enable **Google** (requires Google OAuth client ID + secret)
+
+### 4. Redirect URLs (required for production)
+In **Authentication** → **URL Configuration**:
+
+| Field | Value |
+|-------|--------|
+| Site URL | `https://resurface-u3sy.onrender.com` |
+| Redirect URLs | `https://resurface-u3sy.onrender.com` |
+| | `http://localhost:3000` |
+
+### 5. API keys → Render env vars
+From **Project Settings** → **API**, add on Render:
+
+| Render variable | Supabase value |
+|-----------------|----------------|
+| `SUPABASE_URL` | Project URL |
+| `SUPABASE_ANON_KEY` | anon public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role key (keep secret) |
+
+Save and redeploy on Render. Verify at `/api/config` — `supabaseConfigured` should be `true`.
+
+### 6. Test sign-in
+1. Open the app → **Sign in for cloud sync**
+2. Enter email → **Send Magic Link** → click link in inbox
+3. Use **Sync** in the sidebar to upload existing local opportunities
 
 Without Supabase, the app works fully in local-only mode.
 

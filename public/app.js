@@ -294,8 +294,8 @@ async function initAuth() {
   try {
     const res = await fetch("/api/config");
     appConfig = await res.json();
-    if (!appConfig.supabaseUrl || !appConfig.supabaseAnonKey) {
-      updateAuthUI(null);
+    if (!appConfig.supabaseConfigured) {
+      updateAuthUI(null, false);
       return;
     }
     supabaseClient = window.supabase.createClient(appConfig.supabaseUrl, appConfig.supabaseAnonKey);
@@ -325,10 +325,29 @@ async function onAuthChange(session) {
   }
 }
 
-function updateAuthUI(user) {
+function updateAuthUI(user, supabaseReady = true) {
   const signedIn = document.getElementById("auth-signed-in");
   const signedOut = document.getElementById("auth-signed-out");
   const emailEl = document.getElementById("auth-email");
+  const signInBtn = document.getElementById("auth-sign-in-btn");
+
+  if (!supabaseReady) {
+    signedIn.style.display = "none";
+    signedOut.style.display = "block";
+    if (signInBtn) {
+      signInBtn.disabled = true;
+      signInBtn.textContent = "Cloud sync — add Supabase keys";
+      signInBtn.title = "Set SUPABASE_URL and SUPABASE_ANON_KEY on the server";
+    }
+    return;
+  }
+
+  if (signInBtn) {
+    signInBtn.disabled = false;
+    signInBtn.textContent = "Sign in for cloud sync";
+    signInBtn.removeAttribute("title");
+  }
+
   if (user) {
     signedIn.style.display = "block";
     signedOut.style.display = "none";
@@ -798,15 +817,15 @@ function buildCard(opp, isArchive) {
         <span class="tag ${statusClass(opp.status)}">${statusLabel(opp.status)}</span>
         ${snoozed ? '<span class="tag status-archived">Snoozed</span>' : ""}
       </div>
-      ${dl ? `<span class="${dl.cls}" style="font-size:12px;font-weight:500;font-style:italic;">${dl.text}</span>` : ""}
+      ${dl ? `<span class="${dl.cls}" style="font-size:12px;font-weight:500;">${dl.text}</span>` : ""}
     </div>
-    <h3 class="card-title" style="font-size:15px;font-weight:500;font-style:italic;color:var(--text);margin:0 0 4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(opp.title||"Untitled")}</h3>
-    ${opp.organization ? `<p class="card-org" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;font-style:italic;">${escHtml(opp.organization)}${opp.location?` · ${escHtml(opp.location)}`:""}</p>` : ""}
+    <h3 class="card-title" style="font-size:15px;font-weight:500;color:var(--text);margin:0 0 4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(opp.title||"Untitled")}</h3>
+    ${opp.organization ? `<p class="card-org" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;">${escHtml(opp.organization)}${opp.location?` · ${escHtml(opp.location)}`:""}</p>` : ""}
     <p class="card-desc" style="font-size:13px;color:var(--text-secondary);margin:0 0 14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(opp.description||"")}</p>
     <div style="margin-bottom:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
         <span class="section-label" style="margin:0;">Priority</span>
-        <span style="font-size:13px;font-weight:600;color:${pColor};font-style:italic;">${opp.priorityScore||"?"}/10</span>
+        <span style="font-size:13px;font-weight:600;color:${pColor};">${opp.priorityScore||"?"}/10</span>
       </div>
       <div class="priority-bar"><div class="priority-fill" style="width:${barWidth}%;background:${pColor};"></div></div>
     </div>
@@ -817,10 +836,10 @@ function buildCard(opp, isArchive) {
     ${tags.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px;">${tags.map(t=>`<span style="padding:2px 8px;border-radius:4px;font-size:11px;background:var(--tag-bg);color:var(--tag-text);">${escHtml(t)}</span>`).join("")}</div>` : ""}
     <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border);">
       ${!isArchive ? `
-        <button onclick="event.stopPropagation();cycleStatus('${id}')" class="icon-btn" style="flex:1;gap:6px;font-size:12px;font-style:italic;" data-tip="${statusTip}">${icon(statusIcon,14)} ${statusBtnLabel}</button>
+        <button onclick="event.stopPropagation();cycleStatus('${id}')" class="icon-btn" style="flex:1;gap:6px;font-size:12px;" data-tip="${statusTip}">${icon(statusIcon,14)} ${statusBtnLabel}</button>
         <button onclick="event.stopPropagation();archiveOpp('${id}')" class="icon-btn" data-tip="Move to archive">${icon("archive",14)}</button>
       ` : `
-        <button onclick="event.stopPropagation();unarchiveOpp('${id}')" class="icon-btn" style="flex:1;gap:6px;font-size:12px;font-style:italic;" data-tip="Restore to dashboard">${icon("restore",14)} Restore</button>
+        <button onclick="event.stopPropagation();unarchiveOpp('${id}')" class="icon-btn" style="flex:1;gap:6px;font-size:12px;" data-tip="Restore to dashboard">${icon("restore",14)} Restore</button>
       `}
       <button onclick="event.stopPropagation();confirmDelete('${id}')" class="icon-btn danger" data-tip="Permanently delete">${icon("trash",14)}</button>
       <button onclick="event.stopPropagation();openDetail('${id}')" class="icon-btn" data-tip="View full details">${icon("eye",14)}</button>
@@ -944,9 +963,9 @@ function openDetail(id) {
       <button onclick="closeDetail()" class="icon-btn" data-tip="Close details">${icon("close",14)}</button>
     </div>
     <div class="detail-section">
-      <h2 style="font-size:20px;font-weight:500;font-style:italic;color:var(--text);margin:0 0 6px;">${escHtml(opp.title||"Untitled")}</h2>
-      ${opp.organization ? `<p style="font-size:14px;color:var(--accent);margin:0 0 4px;font-style:italic;">${escHtml(opp.organization)}${opp.location?` · ${escHtml(opp.location)}`:""}</p>` : ""}
-      ${opp.compensation ? `<p style="font-size:14px;color:var(--success);margin:0;font-style:italic;">${escHtml(opp.compensation)}</p>` : ""}
+      <h2 style="font-size:20px;font-weight:500;color:var(--text);margin:0 0 6px;">${escHtml(opp.title||"Untitled")}</h2>
+      ${opp.organization ? `<p style="font-size:14px;color:var(--accent);margin:0 0 4px;">${escHtml(opp.organization)}${opp.location?` · ${escHtml(opp.location)}`:""}</p>` : ""}
+      ${opp.compensation ? `<p style="font-size:14px;color:var(--success);margin:0;">${escHtml(opp.compensation)}</p>` : ""}
     </div>
     <div class="detail-section">
       <p class="section-label">Description</p>
@@ -955,20 +974,20 @@ function openDetail(id) {
     <div class="detail-section" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div>
         <p class="section-label">Priority</p>
-        <p style="font-size:28px;font-weight:600;color:${pColor};margin:0;font-style:italic;">${opp.priorityScore||"?"}<span style="font-size:14px;color:var(--text-dim);">/10</span></p>
+        <p style="font-size:28px;font-weight:600;color:${pColor};margin:0;">${opp.priorityScore||"?"}<span style="font-size:14px;color:var(--text-dim);">/10</span></p>
         <div class="priority-bar" style="margin:6px 0;"><div class="priority-fill" style="width:${barWidth}%;background:${pColor};"></div></div>
-        <p style="font-size:12px;color:var(--text-muted);margin:0;font-style:italic;">${escHtml(opp.priorityReason||"")}</p>
+        <p style="font-size:12px;color:var(--text-muted);margin:0;">${escHtml(opp.priorityReason||"")}</p>
       </div>
       <div>
         <p class="section-label">Deadline</p>
-        ${dl ? `<p class="${dl.cls}" style="font-size:18px;font-weight:500;margin:0;font-style:italic;">${dl.text}</p>` : '<p style="font-size:14px;color:var(--text-dim);font-style:italic;">No deadline</p>'}
+        ${dl ? `<p class="${dl.cls}" style="font-size:18px;font-weight:500;margin:0;">${dl.text}</p>` : '<p style="font-size:14px;color:var(--text-dim);">No deadline</p>'}
         ${opp.deadline ? `<button onclick="addToGoogleCalendar(opportunities.find(o=>o.id==='${id}'))" class="link-btn icon-btn" style="margin-top:8px;display:inline-flex;gap:6px;align-items:center;padding:6px 10px;" data-tip="Add deadline to Google Calendar">${icon("calendar",14)} Calendar</button>` : ""}
       </div>
     </div>
     <div class="detail-section">
       <p class="section-label">Next Action</p>
       <div class="card-action-box">
-        <p style="font-size:15px;color:var(--text-secondary);margin:0;line-height:1.5;font-style:italic;">${escHtml(opp.followUpAction||"No action")}</p>
+        <p style="font-size:15px;color:var(--text-secondary);margin:0;line-height:1.5;">${escHtml(opp.followUpAction||"No action")}</p>
       </div>
     </div>
     <div class="detail-section">
@@ -976,15 +995,15 @@ function openDetail(id) {
       <button id="draft-generate-btn" onclick="generateDraft('${id}')" class="btn-primary" style="width:100%;padding:10px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;" data-tip="Generate a ready-to-send follow-up message">${icon("sparkles",16)} Generate Draft</button>
       ${latestDraft ? `
         <div style="padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--accent-softer);">
-          <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px;font-style:italic;">${escHtml(latestDraft.channel)} ${latestDraft.subject ? `· ${escHtml(latestDraft.subject)}` : ""}</p>
+          <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px;">${escHtml(latestDraft.channel)} ${latestDraft.subject ? `· ${escHtml(latestDraft.subject)}` : ""}</p>
           <textarea id="draft-textarea" class="preview-field" style="min-height:120px;margin:0;">${escHtml(latestDraft.body)}</textarea>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <button onclick="copyDraft(document.getElementById('draft-textarea').value)" class="icon-btn" style="gap:6px;font-size:12px;" data-tip="Copy draft to clipboard">${icon("copy",14)} Copy</button>
             ${latestDraft.channel === "email" ? `<button onclick="openGmailDraft(latestDrafts['${id}'].subject, document.getElementById('draft-textarea').value)" class="icon-btn" style="gap:6px;font-size:12px;" data-tip="Open draft in Gmail">${icon("mail",14)} Gmail</button>` : ""}
             ${latestDraft.channel === "linkedin_dm" ? `<button onclick="openLinkedInSearch(latestDrafts['${id}'].search)" class="icon-btn" style="gap:6px;font-size:12px;" data-tip="Search contact on LinkedIn">${icon("linkedin",14)} LinkedIn</button>` : ""}
           </div>
-          ${latestDraft.tips ? `<p style="font-size:12px;color:var(--text-muted);margin:10px 0 0;font-style:italic;">${escHtml(latestDraft.tips)}</p>` : ""}
-        </div>` : '<p style="font-size:13px;color:var(--text-dim);font-style:italic;">No drafts yet</p>'}
+          ${latestDraft.tips ? `<p style="font-size:12px;color:var(--text-muted);margin:10px 0 0;">${escHtml(latestDraft.tips)}</p>` : ""}
+        </div>` : '<p style="font-size:13px;color:var(--text-dim);">No drafts yet</p>'}
     </div>
     ${details.length ? `<div class="detail-section"><p class="section-label">Key Details</p>${details.map(d=>`<div style="display:flex;gap:8px;margin-bottom:6px;align-items:flex-start;">${icon("dot",8)}<span style="font-size:14px;color:var(--text-secondary);">${escHtml(d)}</span></div>`).join("")}</div>` : ""}
     ${opp.contactInfo ? `<div class="detail-section"><p class="section-label">Contact</p><p style="font-size:14px;color:var(--accent);">${escHtml(opp.contactInfo)} <button onclick="copyDraft('${escHtml(opp.contactInfo)}')" class="link-btn" data-tip="Copy contact information">Copy</button></p></div>` : ""}
@@ -1002,9 +1021,9 @@ function openDetail(id) {
         <button onclick="snoozeOpp('${id}',7)" class="btn-secondary" style="font-size:12px;padding:6px 12px;" data-tip="Hide from dashboard for 7 days">Snooze 7d</button>
         ${opp.reminderAt ? `<button onclick="setReminder('${id}','clear')" class="btn-secondary danger" style="font-size:12px;padding:6px 12px;color:var(--danger);" data-tip="Remove scheduled reminder">Clear</button>` : ""}
       </div>
-      ${opp.reminderAt ? `<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;font-style:italic;">Reminder: ${new Date(opp.reminderAt).toLocaleString()}</p>` : ""}
+      ${opp.reminderAt ? `<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">Reminder: ${new Date(opp.reminderAt).toLocaleString()}</p>` : ""}
     </div>
-    ${activities.length ? `<div class="detail-section"><p class="section-label">Activity</p>${activities.map(a=>`<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;font-style:italic;">${new Date(a.at).toLocaleString()} — ${escHtml(a.type)}${a.meta?.outcome ? ` (${escHtml(a.meta.outcome)})` : ""}</div>`).join("")}</div>` : ""}
+    ${activities.length ? `<div class="detail-section"><p class="section-label">Activity</p>${activities.map(a=>`<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${new Date(a.at).toLocaleString()} — ${escHtml(a.type)}${a.meta?.outcome ? ` (${escHtml(a.meta.outcome)})` : ""}</div>`).join("")}</div>` : ""}
     <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;">
       ${opp.status !== "archived" ? `
         <button onclick="cycleStatus('${id}')" class="btn-primary" style="padding:10px 20px;display:flex;align-items:center;gap:8px;cursor:pointer;" data-tip="${detailStatusTip}">${detailStatusBtn}</button>
@@ -1077,9 +1096,9 @@ let toastTimer;
 function showToast(msg, type) {
   const inner = document.getElementById("toast-inner");
   const colors = {
-    success: "background:#EDF7F2;border:1px solid #C8E6D8;color:var(--success);font-style:italic;",
-    info: "background:var(--surface);border:1px solid var(--border);color:var(--text-secondary);font-style:italic;",
-    error: "background:var(--danger-soft);border:1px solid #E8C4C4;color:var(--danger);font-style:italic;"
+    success: "background:#EDF7F2;border:1px solid #C8E6D8;color:var(--success);",
+    info: "background:var(--surface);border:1px solid var(--border);color:var(--text-secondary);",
+    error: "background:var(--danger-soft);border:1px solid #E8C4C4;color:var(--danger);"
   };
   inner.style.cssText = colors[type] || colors.info;
   document.getElementById("toast-msg").textContent = msg;
