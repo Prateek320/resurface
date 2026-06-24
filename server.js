@@ -32,10 +32,10 @@ const openaiKey = env("OPENAI_API_KEY");
 const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 const geminiKey = env("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY");
-const GEMINI_MODEL = env("GEMINI_MODEL") || "gemini-2.5-flash-lite";
+const GEMINI_MODEL = env("GEMINI_MODEL") || "gemini-2.5-flash";
 const GEMINI_FALLBACK_MODELS = env("GEMINI_MODEL")
   ? [GEMINI_MODEL]
-  : ["gemini-2.5-flash-lite", "gemini-2.5-flash"];
+  : ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
 const gemini = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
 
 function getAIProvider() {
@@ -54,8 +54,26 @@ function parseJsonText(text) {
   return fenced ? fenced[1].trim() : trimmed;
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function safeParseJSON(text) {
+  try {
+    return JSON.parse(parseJsonText(text));
+  } catch {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      return JSON.parse(text.slice(start, end + 1));
+    }
+    throw new Error("Model returned invalid JSON");
+  }
+}
+
+function getGeminiText(response) {
+  try {
+    return response.text();
+  } catch {
+    const reason = response.candidates?.[0]?.finishReason || "blocked";
+    throw new Error(`Gemini response blocked or empty (${reason})`);
+  }
 }
 
 function isRateLimitError(err) {
@@ -90,7 +108,7 @@ async function geminiCompleteJSON({ system, user, temperature, maxTokens }) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const result = await model.generateContent(user);
-        return JSON.parse(parseJsonText(result.response.text()));
+        return safeParseJSON(getGeminiText(result.response));
       } catch (err) {
         lastError = err;
         if (isRateLimitError(err) && attempt < 2) {
@@ -141,8 +159,11 @@ function mapAIError(err, res) {
   if (isRateLimitError(err)) {
     return res.status(429).json({
       error:
-        "Gemini free tier limit reached. Wait 1–2 minutes and try again, or set GEMINI_MODEL=gemini-2.5-flash-lite on Render.",
+        "Gemini free tier limit reached. Wait 1–2 minutes between tries. Free accounts allow ~15 requests/minute.",
     });
+  }
+  if (err.message?.includes("invalid JSON") || err.message?.includes("blocked")) {
+    return res.status(500).json({ error: "AI returned an unusable response. Please try again." });
   }
   return res.status(500).json({ error: "AI request failed. Please try again." });
 }
