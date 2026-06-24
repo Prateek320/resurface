@@ -258,116 +258,140 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
 .usage-badge.free { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--pastel-blue); }
 .usage-badge.pro { background: #EDF7F2; color: var(--success); border: 1px solid #C8E6D8; }
 
-/* Opportunity cards */
-.opp-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-  align-items: stretch;
-}
-
-.opp-card {
+/* Opportunity list */
+.opp-list {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 380px;
-  border-radius: 12px;
-  padding: 18px;
-  cursor: pointer;
-  position: relative;
-}
-
-.opp-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
   gap: 8px;
-  margin-bottom: 12px;
-  min-height: 28px;
 }
 
-.opp-card-header-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+.opp-list-header {
+  display: grid;
+  grid-template-columns: 48px 1fr 120px auto;
+  gap: 16px;
   align-items: center;
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
-.opp-card-deadline {
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
+.opp-list-header span:last-child {
+  text-align: right;
+}
+
+.opp-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 120px auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.opp-row-priority {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent-softer);
+  border: 1px solid var(--pastel-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.opp-card-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+.opp-priority-score {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--priority-color);
+  line-height: 1;
 }
 
-.opp-card .card-title {
+.opp-row-main {
+  min-width: 0;
+}
+
+.opp-row-title-line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.opp-row-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
-  margin: 0 0 4px;
-  line-height: 1.4;
-  min-height: 2.8em;
+  margin: 0;
+  line-height: 1.35;
+  min-width: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.opp-card .card-org {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin: 0 0 10px;
-  min-height: 1.25em;
-  line-height: 1.25;
-}
-
-.opp-card .card-desc {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin: 0 0 14px;
-  line-height: 1.5;
-  min-height: 3em;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.opp-card-priority {
-  margin-bottom: 14px;
-}
-
-.opp-card .card-action-box {
-  margin-bottom: 14px;
-  min-height: 64px;
-}
-
-.opp-card-tags {
+.opp-row-badges {
   display: flex;
   gap: 5px;
   flex-wrap: wrap;
-  min-height: 24px;
-  margin-bottom: 14px;
-  align-items: flex-start;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
-.opp-card-footer {
+.opp-row-org {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.opp-row-action {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.opp-row-action-label {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.opp-row-deadline {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.opp-row-deadline-empty {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.opp-row-actions {
   display: flex;
-  gap: 8px;
-  align-items: stretch;
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
-.opp-card-footer .icon-btn {
+.opp-row-actions .icon-btn {
   height: 36px;
   min-height: 36px;
   padding: 0 12px;
@@ -376,28 +400,57 @@ h1, h2, h3, .h-title, .section-label, .sidebar-logo, .stat-label {
   justify-content: center;
   gap: 6px;
   font-size: 12px;
-  flex-shrink: 0;
+  font-weight: 500;
 }
 
-.opp-card-footer .icon-btn.opp-card-btn-main {
-  flex: 1;
-  min-width: 0;
+.opp-row-btn-main {
+  min-width: 88px;
 }
 
-.opp-card-footer .icon-btn.opp-card-btn-icon {
+.opp-row-btn-icon {
   width: 36px;
   padding: 0;
 }
 
-.opp-card-tag {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  background: var(--tag-bg);
-  color: var(--tag-text);
+@media (max-width: 900px) {
+  .opp-list-header {
+    display: none !important;
+  }
+
+  .opp-row {
+    grid-template-columns: 40px 1fr;
+    grid-template-areas:
+      "priority main"
+      "deadline actions";
+    gap: 10px 12px;
+    align-items: start;
+  }
+
+  .opp-row-priority { grid-area: priority; width: 36px; height: 36px; }
+  .opp-row-main { grid-area: main; }
+  .opp-row-deadline {
+    grid-area: deadline;
+    text-align: left;
+    padding-left: 48px;
+  }
+  .opp-row-actions {
+    grid-area: actions;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .opp-row-title-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .opp-row-badges {
+    justify-content: flex-start;
+  }
 }
 
-/* Card internals */
+/* Card internals (detail modal) */
 .card-action-box {
   padding: 10px 12px;
   border-radius: var(--radius);

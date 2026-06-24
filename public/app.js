@@ -783,33 +783,46 @@ function renderExampleButtons() {
 
 function renderCards() {
   const grid = document.getElementById("cards-grid");
+  const header = document.getElementById("opp-list-header");
   const emptyEl = document.getElementById("empty-state");
   const filtered = sortOpps(filterOpps(opportunities));
-  Array.from(grid.children).forEach(c => { if (c.id !== "empty-state") c.remove(); });
+  Array.from(grid.children).forEach(c => {
+    if (c.id !== "empty-state" && c.id !== "opp-list-header") c.remove();
+  });
   if (!filtered.length) {
+    if (header) header.style.display = "none";
     emptyEl.style.display = "block";
     emptyEl.querySelector("h3").textContent = searchQuery ? "No matches" : "No opportunities yet";
     updateStats();
     return;
   }
   emptyEl.style.display = "none";
+  if (header) header.style.display = "grid";
   filtered.forEach((opp, i) => {
-    const card = buildCard(opp, false);
-    card.style.opacity = "0";
-    grid.appendChild(card);
-    requestAnimationFrame(() => { card.style.animation = `slideUp 0.4s cubic-bezier(0.16,1,0.3,1) ${i*40}ms forwards`; });
+    const row = buildListRow(opp, false);
+    row.style.opacity = "0";
+    grid.appendChild(row);
+    requestAnimationFrame(() => { row.style.animation = `slideUp 0.35s cubic-bezier(0.16,1,0.3,1) ${i * 30}ms forwards`; });
   });
   updateStats();
 }
 
 function renderArchive() {
   const grid = document.getElementById("archive-grid");
+  const header = document.getElementById("archive-list-header");
   const emptyEl = document.getElementById("archive-empty");
   const archived = opportunities.filter(o => o.status === "archived");
-  Array.from(grid.children).forEach(c => { if (c.id !== "archive-empty") c.remove(); });
-  if (!archived.length) { emptyEl.style.display = "block"; return; }
+  Array.from(grid.children).forEach(c => {
+    if (c.id !== "archive-empty" && c.id !== "archive-list-header") c.remove();
+  });
+  if (!archived.length) {
+    if (header) header.style.display = "none";
+    emptyEl.style.display = "block";
+    return;
+  }
   emptyEl.style.display = "none";
-  archived.forEach(opp => grid.appendChild(buildCard(opp, true)));
+  if (header) header.style.display = "grid";
+  archived.forEach(opp => grid.appendChild(buildListRow(opp, true)));
 }
 
 function formatOrgLine(opp) {
@@ -818,60 +831,53 @@ function formatOrgLine(opp) {
   return opp.organization || opp.location;
 }
 
-function buildCard(opp, isArchive) {
-  const card = document.createElement("div");
-  card.className = "glass card-hover opp-card";
+function buildListRow(opp, isArchive) {
+  const row = document.createElement("div");
+  row.className = "glass card-hover opp-row";
   const dl = opp.deadline ? deadlineLabel(opp.deadline) : null;
   const pColor = priorityColor(opp.priorityScore || 5);
-  const barWidth = ((opp.priorityScore || 5) / 10 * 100).toFixed(0);
-  const tags = (opp.tags || []).slice(0, 3);
   const id = opp.id;
   const snoozed = opp.snoozedUntil && new Date(opp.snoozedUntil) > new Date();
   const statusTip = opp.status === "new" ? "Mark as in progress" : opp.status === "in-progress" ? "Mark as followed up" : "Reset to new";
   const statusIcon = opp.status === "new" ? "play" : opp.status === "in-progress" ? "check" : "reset";
   const statusBtnLabel = opp.status === "new" ? "Start" : opp.status === "in-progress" ? "Done" : "Reset";
   const orgLine = formatOrgLine(opp);
+  const followUp = opp.followUpAction || "No action extracted";
 
-  card.innerHTML = `
-    <div class="opp-card-header">
-      <div class="opp-card-header-tags">
-        <span class="tag ${typeClass(opp.type)}">${opp.type||"Other"}</span>
-        <span class="tag ${statusClass(opp.status)}">${statusLabel(opp.status)}</span>
-        ${snoozed ? '<span class="tag status-archived">Snoozed</span>' : ""}
-      </div>
-      <span class="opp-card-deadline ${dl ? dl.cls : ""}">${dl ? dl.text : ""}</span>
+  row.innerHTML = `
+    <div class="opp-row-priority" style="--priority-color:${pColor};" title="Priority ${opp.priorityScore || "?"} out of 10">
+      <span class="opp-priority-score">${opp.priorityScore || "?"}</span>
     </div>
-    <div class="opp-card-body">
-      <h3 class="card-title">${escHtml(opp.title||"Untitled")}</h3>
-      <p class="card-org">${orgLine ? escHtml(orgLine) : "&nbsp;"}</p>
-      <p class="card-desc">${escHtml(opp.description||"")}</p>
-      <div class="opp-card-priority">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-          <span class="section-label" style="margin:0;">Priority</span>
-          <span style="font-size:13px;font-weight:600;color:${pColor};">${opp.priorityScore||"?"}/10</span>
+    <div class="opp-row-main">
+      <div class="opp-row-title-line">
+        <h3 class="opp-row-title">${escHtml(opp.title || "Untitled")}</h3>
+        <div class="opp-row-badges">
+          <span class="tag ${typeClass(opp.type)}">${opp.type || "Other"}</span>
+          <span class="tag ${statusClass(opp.status)}">${statusLabel(opp.status)}</span>
+          ${snoozed ? '<span class="tag status-archived">Snoozed</span>' : ""}
         </div>
-        <div class="priority-bar"><div class="priority-fill" style="width:${barWidth}%;background:${pColor};"></div></div>
       </div>
-      <div class="card-action-box">
-        <p class="card-action-label">Next Action</p>
-        <p class="card-action-text" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(opp.followUpAction||"No action extracted")}</p>
-      </div>
-      <div class="opp-card-tags">
-        ${tags.map(t => `<span class="opp-card-tag">${escHtml(t)}</span>`).join("")}
-      </div>
+      ${orgLine ? `<p class="opp-row-org">${escHtml(orgLine)}</p>` : ""}
+      <p class="opp-row-action"><span class="opp-row-action-label">Next:</span> ${escHtml(followUp)}</p>
     </div>
-    <div class="opp-card-footer">
+    <div class="opp-row-deadline ${dl ? dl.cls : "opp-row-deadline-empty"}">
+      ${dl ? dl.text : "No deadline"}
+    </div>
+    <div class="opp-row-actions">
       ${!isArchive ? `
-        <button onclick="event.stopPropagation();cycleStatus('${id}')" class="icon-btn opp-card-btn-main" data-tip="${statusTip}">${icon(statusIcon,14)} ${statusBtnLabel}</button>
-        <button onclick="event.stopPropagation();archiveOpp('${id}')" class="icon-btn opp-card-btn-icon" data-tip="Move to archive">${icon("archive",14)}</button>
+        <button onclick="event.stopPropagation();cycleStatus('${id}')" class="icon-btn opp-row-btn-main" data-tip="${statusTip}">${icon(statusIcon, 14)} ${statusBtnLabel}</button>
+        <button onclick="event.stopPropagation();archiveOpp('${id}')" class="icon-btn opp-row-btn-icon" data-tip="Move to archive">${icon("archive", 14)}</button>
       ` : `
-        <button onclick="event.stopPropagation();unarchiveOpp('${id}')" class="icon-btn opp-card-btn-main" data-tip="Restore to dashboard">${icon("restore",14)} Restore</button>
+        <button onclick="event.stopPropagation();unarchiveOpp('${id}')" class="icon-btn opp-row-btn-main" data-tip="Restore to dashboard">${icon("restore", 14)} Restore</button>
       `}
-      <button onclick="event.stopPropagation();confirmDelete('${id}')" class="icon-btn opp-card-btn-icon danger" data-tip="Permanently delete">${icon("trash",14)}</button>
-      <button onclick="event.stopPropagation();openDetail('${id}')" class="icon-btn opp-card-btn-icon" data-tip="View full details">${icon("eye",14)}</button>
+      <button onclick="event.stopPropagation();openDetail('${id}')" class="icon-btn opp-row-btn-icon" data-tip="View full details">${icon("eye", 14)}</button>
+      <button onclick="event.stopPropagation();confirmDelete('${id}')" class="icon-btn opp-row-btn-icon danger" data-tip="Permanently delete">${icon("trash", 14)}</button>
     </div>`;
-  card.addEventListener("click", () => openDetail(opp.id));
-  return card;
+  row.addEventListener("click", (e) => {
+    if (e.target.closest("button")) return;
+    openDetail(opp.id);
+  });
+  return row;
 }
 
 function updateStats() {
