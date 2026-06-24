@@ -358,7 +358,13 @@ function updateAuthUI(user, supabaseReady = true) {
   }
 }
 
-function openAuthModal() { document.getElementById("auth-modal").style.display = "flex"; }
+function openAuthModal() {
+  if (!appConfig?.supabaseConfigured) {
+    showToast("Cloud sync not configured yet. Add Supabase keys on Render.", "info");
+    return;
+  }
+  document.getElementById("auth-modal").style.display = "flex";
+}
 function closeAuthModal() { document.getElementById("auth-modal").style.display = "none"; }
 
 async function signInWithEmail() {
