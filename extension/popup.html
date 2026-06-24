@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { width: 280px; padding: 16px; font-family: Inter, system-ui, sans-serif; margin: 0; background: #13131f; color: #e2e2f0; }
+    h2 { font-size: 16px; margin: 0 0 12px; color: #a78bfa; }
+    p { font-size: 13px; color: #9ca3af; margin: 0 0 12px; line-height: 1.5; }
+    input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #2a2a40; background: #1e1e30; color: #e2e2f0; font-size: 13px; box-sizing: border-box; margin-bottom: 10px; }
+    button { width: 100%; padding: 10px; border-radius: 8px; border: none; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
+    button:hover { opacity: 0.9; }
+    label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  </style>
+</head>
+<body>
+  <h2>Resurface</h2>
+  <p>Right-click selected text or use the floating button on LinkedIn to save opportunities.</p>
+  <label>Resurface URL</label>
+  <input id="url" type="url" placeholder="http://localhost:3000" />
+  <button id="save-url">Save URL</button>
+  <p id="status" style="margin-top:10px;font-size:12px;color:#10b981;"></p>
+  <script src="popup.js"></script>
+</body>
+</html>
