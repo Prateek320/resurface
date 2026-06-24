@@ -32,10 +32,15 @@ const openaiKey = env("OPENAI_API_KEY");
 const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 const geminiKey = env("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY");
-const GEMINI_MODEL = env("GEMINI_MODEL") || "gemini-2.5-flash";
-const GEMINI_FALLBACK_MODELS = env("GEMINI_MODEL")
-  ? [GEMINI_MODEL]
-  : ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+const GEMINI_MODEL = env("GEMINI_MODEL") || "gemini-2.5-flash-lite";
+const GEMINI_FALLBACK_MODELS = [
+  ...new Set([
+    "gemini-2.5-flash-lite",
+    GEMINI_MODEL,
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+  ]),
+];
 const gemini = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
 
 function getAIProvider() {
@@ -80,6 +85,40 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function withTimeout(promise, ms, message = "AI request timed out") {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+  ]);
+}
+
+function isRateLimitError(err) {
+  const msg = err.message || "";
+  return (
+    err.status === 429 ||
+    msg.includes("429") ||
+    msg.includes("quota") ||
+    msg.includes("RESOURCE_EXHAUSTED") ||
+    msg.includes("rate limit")
+  );
+}
+
+function isTransientError(err) {
+  const msg = (err.message || "").toLowerCase();
+  return (
+    err.status === 503 ||
+    msg.includes("503") ||
+    msg.includes("overloaded") ||
+    msg.includes("unavailable") ||
+    msg.includes("high demand")
+  );
+}
+
+function isModelError(err) {
+  const msg = (err.message || "").toLowerCase();
+  return err.status === 404 || msg.includes("not found") || msg.includes("deprecated");
+}
+
 function isAuthError(err) {
   const msg = (err.message || "").toLowerCase();
   return err.status === 401 || err.status === 403 || msg.includes("api key") || msg.includes("permission");
@@ -102,49 +141,34 @@ async function callGeminiModel(modelName, system, user, temperature, maxTokens, 
 
 async function geminiCompleteJSON({ system, user, temperature, maxTokens }) {
   let lastError;
-  for (const modelName of GEMINI_FALLBACK_MODELS) {
+  const models = GEMINI_FALLBACK_MODELS.slice(0, 2);
+
+  for (const modelName of models) {
     for (const useSystemInstruction of [true, false]) {
-      for (let attempt = 0; attempt < 3; attempt++) {
+      for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          return await callGeminiModel(
-            modelName,
-            system,
-            user,
-            temperature,
-            maxTokens,
-            useSystemInstruction
+          return await withTimeout(
+            callGeminiModel(modelName, system, user, temperature, maxTokens, useSystemInstruction),
+            55000
           );
         } catch (err) {
           lastError = err;
           console.error(`Gemini error [${modelName}]:`, err.message);
-          if (isAuthError(err)) throw err;
-          if (isRateLimitError(err) && attempt < 2) {
-            await sleep(2000 * (attempt + 1));
+          if (isAuthError(err) || isRateLimitError(err)) throw err;
+          if (isTransientError(err) && attempt === 0) {
+            await sleep(2500);
             continue;
           }
           break;
         }
       }
-      if (lastError && isModelError(lastError)) break;
+      if (lastError?.message?.includes("invalid JSON")) continue;
+      if (lastError && !isTransientError(lastError)) break;
     }
+    if (lastError && isModelError(lastError)) break;
   }
+
   throw lastError || new Error("Gemini request failed");
-}
-
-function isRateLimitError(err) {
-  const msg = err.message || "";
-  return (
-    err.status === 429 ||
-    msg.includes("429") ||
-    msg.includes("quota") ||
-    msg.includes("RESOURCE_EXHAUSTED") ||
-    msg.includes("rate limit")
-  );
-}
-
-function isModelError(err) {
-  const msg = (err.message || "").toLowerCase();
-  return err.status === 404 || msg.includes("not found") || msg.includes("deprecated");
 }
 
 async function completeJSON({ system, user, temperature = 0.2, maxTokens = 1000 }) {
@@ -184,6 +208,16 @@ function mapAIError(err, res) {
     return res.status(429).json({
       error:
         "Gemini free tier limit reached. Wait 1–2 minutes between tries. Free accounts allow ~15 requests/minute.",
+    });
+  }
+  if (isTransientError(err)) {
+    return res.status(503).json({
+      error: "AI is temporarily busy. Wait 10 seconds and try again.",
+    });
+  }
+  if (err.message?.includes("timed out")) {
+    return res.status(504).json({
+      error: "AI request timed out. The server may be waking up — wait 10 seconds and try again.",
     });
   }
   if (err.message?.includes("invalid JSON") || err.message?.includes("blocked")) {
@@ -269,6 +303,37 @@ Rules:
 - Sound human, not templated
 - Match channel tone (LinkedIn DM = shorter, email = slightly more formal)
 - Do not invent credentials the user didn't provide — use placeholders like [your relevant project] if needed`;
+
+function slimOpportunity(opp) {
+  return {
+    type: opp.type,
+    title: opp.title,
+    organization: opp.organization,
+    location: opp.location,
+    description: opp.description,
+    deadline: opp.deadline,
+    followUpAction: opp.followUpAction,
+    priorityScore: opp.priorityScore,
+    priorityReason: opp.priorityReason,
+    keyDetails: Array.isArray(opp.keyDetails) ? opp.keyDetails.slice(0, 8) : undefined,
+    contactInfo: opp.contactInfo,
+    compensation: opp.compensation,
+    tags: Array.isArray(opp.tags) ? opp.tags.slice(0, 8) : undefined,
+    notes: typeof opp.notes === "string" ? opp.notes.slice(0, 500) : undefined,
+    outcome: opp.outcome,
+    status: opp.status,
+  };
+}
+
+function normalizeDraft(draft) {
+  if (!draft?.body) throw new Error("Model returned invalid JSON");
+  return {
+    channel: draft.channel || "email",
+    subject: draft.subject || null,
+    body: draft.body,
+    tips: draft.tips || "",
+  };
+}
 
 async function getUserFromToken(req) {
   const auth = req.headers.authorization;
@@ -426,15 +491,16 @@ app.post("/api/draft-followup", optionalAuth, async (req, res) => {
   }
 
   try {
+    const slim = slimOpportunity(opportunity);
     const draft = await completeJSON({
       system: DRAFT_PROMPT,
-      user: `Opportunity:\n${JSON.stringify(opportunity, null, 2)}${buildProfileContext(profile)}`,
+      user: `Opportunity:\n${JSON.stringify(slim, null, 2)}${buildProfileContext(profile)}`,
       temperature: 0.4,
       maxTokens: 800,
     });
     if (req.user) await incrementUsage(req.user.id, "draft");
 
-    res.json({ success: true, draft });
+    res.json({ success: true, draft: normalizeDraft(draft) });
   } catch (err) {
     return mapAIError(err, res);
   }
@@ -547,6 +613,9 @@ app.get("/api/usage", optionalAuth, async (req, res) => {
 });
 
 app.get("/health", (_, res) => res.json({ status: "ok" }));
+
+// Wake Render instance before heavy AI calls
+app.get("/api/warmup", (_, res) => res.json({ ok: true }));
 
 app.get("/api/ai-ping", async (_, res) => {
   if (!gemini) {

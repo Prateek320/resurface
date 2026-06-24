@@ -216,11 +216,53 @@ function getProfileForAI() {
   return null;
 }
 
+function opportunityForDraft(opp) {
+  return {
+    type: opp.type,
+    title: opp.title,
+    organization: opp.organization,
+    location: opp.location,
+    description: opp.description,
+    deadline: opp.deadline,
+    followUpAction: opp.followUpAction,
+    priorityScore: opp.priorityScore,
+    priorityReason: opp.priorityReason,
+    keyDetails: opp.keyDetails?.slice(0, 8),
+    contactInfo: opp.contactInfo,
+    compensation: opp.compensation,
+    tags: opp.tags?.slice(0, 8),
+    notes: opp.notes?.slice(0, 500),
+    outcome: opp.outcome,
+    status: opp.status,
+  };
+}
+
 async function authHeaders() {
   if (!supabaseClient) return {};
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) return {};
   return { Authorization: `Bearer ${data.session.access_token}` };
+}
+
+async function apiFetch(url, options = {}, timeoutMs = 120000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("Request timed out. The server may still be waking up — wait 15 seconds and try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function warmupServer() {
+  fetch("/api/warmup").catch(() => {});
 }
 
 // ============================================================
@@ -480,29 +522,42 @@ async function extractOpportunity() {
 
   const btn = document.getElementById("extract-btn");
   const loading = document.getElementById("loading-state");
+  const loadingHint = document.getElementById("loading-hint");
   const errorEl = document.getElementById("error-state");
   btn.style.display = "none";
   loading.style.display = "block";
   errorEl.style.display = "none";
+  if (loadingHint) loadingHint.textContent = "Extracting deadline, actions, and priority";
+
+  warmupServer();
+  const slowTimer = setTimeout(() => {
+    if (loadingHint) {
+      loadingHint.textContent = "Server is waking up — this can take up to 60 seconds on the first try. Please wait…";
+    }
+  }, 8000);
 
   try {
     const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
-    const res = await fetch("/api/extract", {
+    const { res, data } = await apiFetch("/api/extract", {
       method: "POST", headers,
       body: JSON.stringify({ text, profile: getProfileForAI() })
     });
-    const data = await res.json();
     if (!res.ok) {
       if (data.limitReached) showUpgradePrompt(data.error);
-      throw new Error(data.error || "Extraction failed");
+      const detail = data.hint ? `${data.error} (${data.hint})` : data.error;
+      throw new Error(detail || "Extraction failed");
     }
     pendingRawText = text;
     pendingExtract = data.opportunity;
     showPreview(data.opportunity);
     updateUsageUI();
   } catch (err) {
-    showError(err.message);
+    const msg = err.message === "Failed to fetch"
+      ? "Could not reach the server. It may be waking up — wait 30 seconds and try again."
+      : err.message;
+    showError(msg);
   } finally {
+    clearTimeout(slowTimer);
     btn.style.display = "flex";
     loading.style.display = "none";
   }
@@ -589,17 +644,23 @@ async function generateDraft(oppId) {
   const opp = opportunities.find(o => o.id === oppId);
   if (!opp) return;
   const btn = document.getElementById("draft-generate-btn");
+  const statusEl = document.getElementById("draft-status");
   if (btn) { btn.disabled = true; btn.innerHTML = "Generating..."; }
+  if (statusEl) statusEl.textContent = "Writing your follow-up message…";
+  warmupServer();
+  const slowTimer = setTimeout(() => {
+    if (statusEl) statusEl.textContent = "Still working — first try after idle can take up to 60 seconds. Please wait…";
+  }, 8000);
   try {
     const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
-    const res = await fetch("/api/draft-followup", {
+    const { res, data } = await apiFetch("/api/draft-followup", {
       method: "POST", headers,
-      body: JSON.stringify({ opportunity: opp, profile: getProfileForAI() })
+      body: JSON.stringify({ opportunity: opportunityForDraft(opp), profile: getProfileForAI() })
     });
-    const data = await res.json();
     if (!res.ok) {
       if (data.limitReached) showUpgradePrompt(data.error);
-      throw new Error(data.error || "Draft failed");
+      const detail = data.hint ? `${data.error} (${data.hint})` : data.error;
+      throw new Error(detail || "Draft failed");
     }
     if (!opp.drafts) opp.drafts = [];
     opp.drafts.unshift({ ...data.draft, createdAt: new Date().toISOString() });
@@ -609,9 +670,17 @@ async function generateDraft(oppId) {
     updateUsageUI();
     showToast("Draft generated!", "success");
   } catch (err) {
-    showToast(err.message, "error");
+    const msg = err.message === "Failed to fetch"
+      ? "Could not reach the server. It may be waking up — wait 30 seconds and try again."
+      : err.message;
+    if (statusEl) statusEl.textContent = msg;
+    showToast(msg, "error");
   } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = `${icon("sparkles",16)} Generate Follow-Up Draft`; }
+    clearTimeout(slowTimer);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `${icon("sparkles",16)} Generate Draft`;
+    }
   }
 }
 
@@ -1151,7 +1220,8 @@ function openDetail(id) {
     </div>
     <div class="detail-section">
       <p class="section-label">Follow-Up Draft</p>
-      <button id="draft-generate-btn" onclick="generateDraft('${id}')" class="btn-primary" style="width:100%;padding:10px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;" data-tip="Generate a ready-to-send follow-up message">${icon("sparkles",16)} Generate Draft</button>
+      <button id="draft-generate-btn" onclick="generateDraft('${id}')" class="btn-primary" style="width:100%;padding:10px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px;" data-tip="Generate a ready-to-send follow-up message">${icon("sparkles",16)} Generate Draft</button>
+      <p id="draft-status" style="font-size:12px;color:var(--text-dim);margin:0 0 12px;min-height:18px;"></p>
       ${latestDraft ? `
         <div style="padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--accent-softer);">
           <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px;">${escHtml(latestDraft.channel)}${latestDraft.subject ? `, ${escHtml(latestDraft.subject)}` : ""}</p>
@@ -1296,6 +1366,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderCards();
   handleShareTarget();
   initTooltips();
+  warmupServer();
 
   const ta = document.getElementById("paste-input");
   if (ta) ta.addEventListener("keydown", e => { if ((e.metaKey||e.ctrlKey)&&e.key==="Enter") extractOpportunity(); });
