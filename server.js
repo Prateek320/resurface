@@ -76,6 +76,61 @@ function getGeminiText(response) {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isAuthError(err) {
+  const msg = (err.message || "").toLowerCase();
+  return err.status === 401 || err.status === 403 || msg.includes("api key") || msg.includes("permission");
+}
+
+async function callGeminiModel(modelName, system, user, temperature, maxTokens, useSystemInstruction) {
+  const model = gemini.getGenerativeModel({
+    model: modelName,
+    ...(useSystemInstruction ? { systemInstruction: system } : {}),
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature,
+      maxOutputTokens: maxTokens,
+    },
+  });
+  const prompt = useSystemInstruction ? user : `${system}\n\n---\n\n${user}`;
+  const result = await model.generateContent(prompt);
+  return safeParseJSON(getGeminiText(result.response));
+}
+
+async function geminiCompleteJSON({ system, user, temperature, maxTokens }) {
+  let lastError;
+  for (const modelName of GEMINI_FALLBACK_MODELS) {
+    for (const useSystemInstruction of [true, false]) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          return await callGeminiModel(
+            modelName,
+            system,
+            user,
+            temperature,
+            maxTokens,
+            useSystemInstruction
+          );
+        } catch (err) {
+          lastError = err;
+          console.error(`Gemini error [${modelName}]:`, err.message);
+          if (isAuthError(err)) throw err;
+          if (isRateLimitError(err) && attempt < 2) {
+            await sleep(2000 * (attempt + 1));
+            continue;
+          }
+          break;
+        }
+      }
+      if (lastError && isModelError(lastError)) break;
+    }
+  }
+  throw lastError || new Error("Gemini request failed");
+}
+
 function isRateLimitError(err) {
   const msg = err.message || "";
   return (
@@ -90,37 +145,6 @@ function isRateLimitError(err) {
 function isModelError(err) {
   const msg = (err.message || "").toLowerCase();
   return err.status === 404 || msg.includes("not found") || msg.includes("deprecated");
-}
-
-async function geminiCompleteJSON({ system, user, temperature, maxTokens }) {
-  let lastError;
-  for (const modelName of GEMINI_FALLBACK_MODELS) {
-    const model = gemini.getGenerativeModel({
-      model: modelName,
-      systemInstruction: system,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature,
-        maxOutputTokens: maxTokens,
-      },
-    });
-
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const result = await model.generateContent(user);
-        return safeParseJSON(getGeminiText(result.response));
-      } catch (err) {
-        lastError = err;
-        if (isRateLimitError(err) && attempt < 2) {
-          await sleep(1500 * (attempt + 1));
-          continue;
-        }
-        if (isModelError(err)) break;
-        throw err;
-      }
-    }
-  }
-  throw lastError || new Error("Gemini request failed");
 }
 
 async function completeJSON({ system, user, temperature = 0.2, maxTokens = 1000 }) {
@@ -165,7 +189,11 @@ function mapAIError(err, res) {
   if (err.message?.includes("invalid JSON") || err.message?.includes("blocked")) {
     return res.status(500).json({ error: "AI returned an unusable response. Please try again." });
   }
-  return res.status(500).json({ error: "AI request failed. Please try again." });
+  const hint = (err.message || "").slice(0, 160);
+  return res.status(500).json({
+    error: "AI request failed. Please try again.",
+    hint: hint || undefined,
+  });
 }
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -518,6 +546,28 @@ app.get("/api/usage", optionalAuth, async (req, res) => {
 });
 
 app.get("/health", (_, res) => res.json({ status: "ok" }));
+
+app.get("/api/ai-ping", async (_, res) => {
+  if (!gemini) {
+    return res.json({ ok: false, reason: "no_ai_key" });
+  }
+  for (const modelName of GEMINI_FALLBACK_MODELS) {
+    try {
+      const model = gemini.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent('Reply with exactly the word "ok"');
+      return res.json({
+        ok: true,
+        model: modelName,
+        reply: getGeminiText(result.response).slice(0, 20),
+      });
+    } catch (err) {
+      if (isAuthError(err)) {
+        return res.json({ ok: false, model: modelName, error: err.message?.slice(0, 200) });
+      }
+    }
+  }
+  res.json({ ok: false, error: "All Gemini models failed. Check API key and model access." });
+});
 
 app.get("*", (_, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
