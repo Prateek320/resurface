@@ -117,6 +117,7 @@ function icon(name, size = 16) {
     alert: `<svg ${s}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
     dot: `<svg ${s}><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>`,
     restore: `<svg ${s}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`,
+    help: `<svg ${s}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
   };
   return icons[name] || "";
 }
@@ -366,6 +367,15 @@ function openAuthModal() {
   document.getElementById("auth-modal").style.display = "flex";
 }
 function closeAuthModal() { document.getElementById("auth-modal").style.display = "none"; }
+
+function openHelpModal() {
+  closeSidebar();
+  document.getElementById("help-modal").style.display = "flex";
+}
+
+function closeHelpModal() {
+  document.getElementById("help-modal").style.display = "none";
+}
 
 async function signInWithEmail() {
   const email = document.getElementById("auth-email-input").value.trim();
@@ -1194,6 +1204,8 @@ window.snoozeOpp = snoozeOpp;
 window.saveNotes = saveNotes;
 window.openAuthModal = openAuthModal;
 window.closeAuthModal = closeAuthModal;
+window.openHelpModal = openHelpModal;
+window.closeHelpModal = closeHelpModal;
 window.signInWithEmail = signInWithEmail;
 window.signInWithGoogle = signInWithGoogle;
 window.signOut = signOut;

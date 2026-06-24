@@ -22,6 +22,9 @@
     </button>
     <span class="sidebar-logo" style="font-size:16px;color:var(--text);">Resurface</span>
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+      <button onclick="openHelpModal()" class="icon-btn help-header-btn" aria-label="How to use Resurface" data-tip="How to use Resurface">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
       <span id="usage-badge" class="usage-badge free"></span>
       <button onclick="showView('add')" class="btn-primary" style="padding:8px 14px;font-size:13px;cursor:pointer;" data-tip="Add a new opportunity from pasted text">Add</button>
     </div>
@@ -32,11 +35,16 @@
     <!-- ===== SIDEBAR ===== -->
     <aside id="sidebar" class="sidebar glass" style="width:240px;flex-shrink:0;display:flex;flex-direction:column;padding:24px 12px;position:sticky;top:0;height:100vh;">
       <div style="padding:0 8px;margin-bottom:28px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-          <div class="brand-mark">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M12 8v4l3 3"/></svg>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="brand-mark">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <span class="sidebar-logo" style="font-size:18px;color:var(--text);">Resurface</span>
           </div>
-          <span class="sidebar-logo" style="font-size:18px;color:var(--text);">Resurface</span>
+          <button onclick="openHelpModal()" class="icon-btn help-header-btn" aria-label="How to use Resurface" data-tip="How to use Resurface">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
         </div>
         <p style="font-size:11px;color:var(--text-dim);margin:6px 0 0 42px;">Opportunity intelligence</p>
       </div>
@@ -321,6 +329,118 @@
         <button onclick="closeOnboarding()" style="padding:12px 16px;border-radius:10px;border:1px solid var(--border-hard);background:transparent;color:var(--text-muted);font-size:14px;cursor:pointer;">Skip</button>
       </div>
       <p style="font-size:12px;color:var(--text-dim);margin:12px 0 0;">Pro users get unlimited AI extractions and drafts. <button onclick="upgradeToPro()" class="link-btn">Upgrade</button></p>
+    </div>
+  </div>
+
+  <!-- HELP / HOW TO USE -->
+  <div id="help-modal" style="display:none;position:fixed;inset:0;z-index:260;align-items:center;justify-content:center;padding:20px;">
+    <div class="modal-overlay" style="position:absolute;inset:0;background:var(--modal-overlay);" onclick="closeHelpModal()"></div>
+    <div class="glass confirm-modal help-modal-panel modal-panel" style="position:relative;width:100%;max-width:640px;border-radius:16px;max-height:90vh;display:flex;flex-direction:column;">
+      <div class="help-modal-header">
+        <div>
+          <h3 style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 4px;">How to use Resurface</h3>
+          <p style="font-size:14px;color:var(--text-muted);margin:0;">Everything you can do on the platform</p>
+        </div>
+        <button onclick="closeHelpModal()" class="icon-btn help-header-btn" aria-label="Close guide" data-tip="Close guide">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="help-modal-body">
+        <section class="help-section">
+          <h4>Quick start</h4>
+          <ol class="help-steps">
+            <li>Go to <strong>Add Opportunity</strong> and paste text from WhatsApp, LinkedIn, a job post, or email.</li>
+            <li>Click <strong>Extract Opportunity with AI</strong> (or press <kbd>Ctrl</kbd>+<kbd>Enter</kbd>).</li>
+            <li>Review and edit the preview, then <strong>Save Opportunity</strong>.</li>
+            <li>Open any card to view details, generate follow-up drafts, and set reminders.</li>
+          </ol>
+        </section>
+
+        <section class="help-section">
+          <h4>Dashboard</h4>
+          <ul class="help-list">
+            <li><strong>Stats</strong>: Total active opportunities, high priority (8+), due within 14 days, and followed up.</li>
+            <li><strong>Search</strong>: Find opportunities by title, company, tags, or description.</li>
+            <li><strong>Filters</strong>: All, High Priority, Due Soon, New, or In Progress.</li>
+            <li><strong>Sort</strong>: By priority score, deadline, or newest first.</li>
+            <li><strong>Cards</strong>: Click a card for full details. Use <strong>Start</strong> / <strong>Done</strong> to track progress.</li>
+          </ul>
+        </section>
+
+        <section class="help-section">
+          <h4>Opportunity cards</h4>
+          <ul class="help-list">
+            <li><strong>Priority score</strong>: AI ranks urgency from 1 to 10 based on deadline and fit.</li>
+            <li><strong>Next Action</strong>: The specific follow-up step the AI recommends.</li>
+            <li><strong>Archive</strong>: Move completed or paused items out of the active dashboard.</li>
+            <li><strong>Delete</strong>: Permanently remove an opportunity.</li>
+            <li><strong>View</strong> (eye icon): Open the full detail panel.</li>
+          </ul>
+        </section>
+
+        <section class="help-section">
+          <h4>Detail view &amp; follow-ups</h4>
+          <ul class="help-list">
+            <li><strong>Generate Draft</strong>: AI writes a ready-to-send email, LinkedIn DM, or message.</li>
+            <li><strong>Copy / Gmail / LinkedIn</strong>: One-click actions from the draft panel.</li>
+            <li><strong>Notes</strong>: Add your own context; saved automatically.</li>
+            <li><strong>Reminders</strong>: Browser notifications for 1 day before, day of, or if stalled 3 days.</li>
+            <li><strong>Snooze</strong>: Hide an opportunity for 3 or 7 days.</li>
+            <li><strong>Outcome</strong>: Track Applied, Got reply, Rejected, or Ghosted when you mark Done.</li>
+            <li><strong>Activity log</strong>: See status changes, drafts, and reminders over time.</li>
+          </ul>
+        </section>
+
+        <section class="help-section">
+          <h4>Profile &amp; AI personalization</h4>
+          <ul class="help-list">
+            <li>Complete onboarding with your role, skills, location, and interests.</li>
+            <li>AI uses your profile to personalize priority scores and follow-up actions.</li>
+            <li>Edit anytime via <strong>Profile</strong> in the sidebar (when signed in).</li>
+          </ul>
+        </section>
+
+        <section class="help-section">
+          <h4>Cloud sync &amp; sign-in</h4>
+          <ul class="help-list">
+            <li><strong>Sign in</strong> with email magic link or Google to sync across devices.</li>
+            <li><strong>Sync</strong> uploads local opportunities to the cloud on first sign-in.</li>
+            <li>Without sign-in, data stays in your browser only.</li>
+            <li>Free tier (signed in): 10 AI extractions and 3 drafts per month.</li>
+          </ul>
+        </section>
+
+        <section class="help-section">
+          <h4>Export &amp; import</h4>
+          <ul class="help-list">
+            <li><strong>Export</strong>: Download all opportunities as JSON.</li>
+            <li><strong>CSV</strong>: Spreadsheet export for titles, deadlines, status, and more.</li>
+            <li><strong>Import</strong>: Restore from a previously exported JSON file.</li>
+          </ul>
+        </section>
+
+        <section class="help-section">
+          <h4>Capture from anywhere</h4>
+          <ul class="help-list">
+            <li><strong>PWA</strong>: Install Resurface from your browser for an app-like experience.</li>
+            <li><strong>Share target</strong>: On mobile, share text from other apps directly into Resurface.</li>
+            <li><strong>Chrome extension</strong>: Save selected text or LinkedIn pages (see the <code>extension/</code> folder).</li>
+          </ul>
+        </section>
+
+        <section class="help-section help-section-last">
+          <h4>Tips</h4>
+          <ul class="help-list">
+            <li>Hover any button for 3 seconds to see a tooltip explaining what it does.</li>
+            <li>Duplicate detection warns you before saving a similar opportunity.</li>
+            <li>Use <strong>Archive</strong> to keep your dashboard focused on what needs action now.</li>
+          </ul>
+        </section>
+      </div>
+      <div class="help-modal-footer">
+        <button onclick="closeHelpModal();showView('add')" class="btn-primary" style="padding:10px 18px;cursor:pointer;">Add your first opportunity</button>
+        <button onclick="closeHelpModal()" class="btn-secondary" style="padding:10px 18px;cursor:pointer;">Close</button>
+      </div>
     </div>
   </div>
 
